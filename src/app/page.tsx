@@ -30,10 +30,10 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* 소속 / 학번 배지 */}
+          {/* 소속 / 역할 배지 */}
           <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 dark:bg-blue-950/60 px-3.5 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/50 mb-4">
             <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse"></span>
-            목포해양대학교 21학번
+            성장하는 주니어 개발자
           </div>
 
           {/* 이름 */}
@@ -43,31 +43,31 @@ export default function ProfilePage() {
 
           {/* 소개글 */}
           <p className="text-base text-zinc-600 dark:text-zinc-300 leading-relaxed font-normal mb-8 break-keep">
-            안녕하세요 바이브 코딩을 배우고 있는
+            기술로 일상의 문제를 해결하고 더 나은 사용자 경험을 만들어가는 개발자입니다.
             <br />
-            목포해양대학교 21학번 대학생입니다.
+            읽기 좋은 클린 코드와 직관적인 인터페이스, 함께 일하고 싶은 협업 문화를 중요하게 생각합니다.
           </p>
 
           {/* 태그 / 관심사 */}
           <div className="flex flex-wrap justify-center gap-2 mb-8">
             <span className="rounded-lg bg-zinc-100 dark:bg-zinc-800/80 px-2.5 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-300">
-              🌊 목포해양대
+              💻 웹 프론트엔드
             </span>
             <span className="rounded-lg bg-zinc-100 dark:bg-zinc-800/80 px-2.5 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-300">
-              ✨ 바이브 코딩
+              ⚡ React & Next.js
             </span>
             <span className="rounded-lg bg-zinc-100 dark:bg-zinc-800/80 px-2.5 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-300">
-              💻 웹 개발
+              🤖 AI 협업 개발
             </span>
             <span className="rounded-lg bg-zinc-100 dark:bg-zinc-800/80 px-2.5 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-300">
-              🚀 성장 중
+              🚀 지속적인 성장
             </span>
           </div>
 
           {/* 링크 및 액션 버튼 목록 */}
           <div className="space-y-3">
             <a
-              href="https://github.com"
+              href="https://github.com/limgyumin-kr"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-between w-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/50 px-5 py-3.5 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:scale-[1.01] active:scale-[0.99] transition-all shadow-sm group"

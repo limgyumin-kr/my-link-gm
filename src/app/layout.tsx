@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "임규민 | 프로필",
-  description: "목포해양대학교 21학번 임규민의 프로필 페이지입니다.",
+  title: "임규민 | 개발자 프로필",
+  description: "문제를 해결하고 끊임없이 성장하는 개발자 임규민의 프로필 페이지입니다.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
