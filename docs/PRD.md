@@ -1,227 +1,213 @@
-# [PRD] 멀티테넌트 링크트리 클론 서비스 — "마이링크 (MyLink)" 기능 정의서
+# [PRD] 링크트리 클론 서비스 — "마이링크 (MyLink)" 기능 정의서
 
-- **버전**: v1.0.0 (MVP)
+- **버전**: v1.4.0 (와이어프레임 & 사용자 시나리오 포함 Phase 1 스펙)
 - **작성일**: 2026-10-17
-- **상태**: 승인 및 개발 착수 준비
+- **상태**: 승인 및 Phase 1 시연 준비
 - **디자인 기반**: SOCAR Frame 2.0 Design System
+- **상태 및 데이터 관리**: Zustand + `localStorage` 영속성 (Phase 1)
 
 ---
 
-## 1. 프로젝트 개요 (Overview)
+## 1. 프로젝트 개요 & 시연 전략 (Overview & Strategy)
 
 ### 1.1 배경 및 목적
-인플루언서, 개발자, 크리에이터 및 일반 사용자가 흩어져 있는 자신의 SNS, 포트폴리오, 프로젝트, 블로그 등의 링크를 단 하나의 고유 URL(`/@username`)에 깔끔하게 모아 브랜딩할 수 있는 **멀티테넌트 링크트리 클론 서비스**를 구축합니다.
+"마이링크 (MyLink)"는 흩어져 있는 사용자의 링크와 프로필을 단 하나의 페이지에 깔끔하게 집약하는 링크트리 클론 서비스입니다.  
+현재는 **서비스 빌딩 과정을 단계별로 시연(Demo)**하는 단계이므로, 복잡한 백엔드 인프라나 대시보드 대신 **"로컬 스토리지를 활용한 완성도 높은 프로필 페이지"**를 1단계 목표로 집중 개발합니다.
 
-### 1.2 핵심 가치
-- **본질에 집중한 절제된 UX**: 불필요한 장식을 덜어내고 콘텐츠와 가독성에 집중 (SOCAR Frame 2.0 시각 언어 기반)
-- **실시간 반응형 대시보드**: 링크 수정 시 즉시 모바일 목업에 반영되는 직관적인 라이브 프리뷰
-- **신뢰할 수 있는 성능 & 확장성**: Next.js 16 App Router와 PostgreSQL + Prisma 기반의 안정적인 아키텍처
+### 1.2 단계별 개발 전략 (Phased Approach)
 
----
-
-## 2. 사용자 페르소나 및 핵심 유즈케이스
-
-### 2.1 대상 사용자
-1. **크리에이터 / 인플루언서**: 인스타그램, 유튜브, 오픈채팅방, 협찬 링크 등을 단일 링크로 전달하고자 하는 사용자
-2. **개발자 / 디자이너**: GitHub, 포트폴리오, 블로그, 이력서 링크를 정갈하고 신뢰감 있게 공유하고자 하는 구직자 및 실무자
-3. **일반 방문자**: 공유된 `/@username` 링크를 통해 모바일/웹에서 빠르고 쾌적하게 원하는 링크로 이동하려는 방문자
-
-### 2.2 핵심 유저 플로우
 ```mermaid
 flowchart LR
-    A["방문자 (홈/랜딩)"] --> B["소셜 간편 로그인 (NextAuth)"]
-    B --> C["유저네임(@handle) 설정 온보딩"]
-    C --> D["대시보드 (2단 분할)"]
-    D --> E["프로필/링크/테마 편집"]
-    E --> F["공개 링크 페이지 (/@handle) 공유"]
-    G["일반 방문자"] --> F
-    F --> H["조회수/클릭수 트래킹"]
+    P1["[Phase 1] 현재 시연 단계\n- 로컬 스토리지 기반 프로필 페이지\n- 간편 링크 추가/수정/삭제 모달\n- URL 유효성 검사\n- SOCAR Frame 2.0 디자인"] --> P2["[Phase 2] 대시보드 확장\n- 2단 분할 대시보드 레이아웃\n- 실시간 스마트폰 목업 프리뷰\n- 드래그 앤 드롭(DnD) 재정렬"]
+    P2 --> P3["[Phase 3] 멀티테넌트 & 백엔드\n- NextAuth 소셜 로그인\n- PostgreSQL + Prisma DB 연동\n- 고유 URL(/@handle) 발급"]
+    P3 --> P4["[Phase 4] 분석 & 고도화\n- 링크별 클릭 수 & 뷰 통계\n- 커스텀 테마 빌더"]
 ```
 
 ---
 
-## 3. 기능 요구사항 명세 (Functional Requirements)
+## 2. 사용자 시나리오 (User Scenarios)
 
-### 3.1 사용자 인증 및 계정 관리 (Authentication & Onboarding)
-| ID | 기능명 | 상세 설명 | 우선순위 |
-|---|---|---|---|
-| **AUTH-01** | 소셜 로그인 | Google, GitHub 등 OAuth 기반 소셜 간편 로그인 제공 (NextAuth v5) | P0 (Must) |
-| **AUTH-02** | 고유 핸들 온보딩 | 첫 로그인 시 영문/숫자/하이픈 기반의 고유 유저네임(`@handle`) 설정 및 중복 확인 | P0 (Must) |
-| **AUTH-03** | 세션 & 보안 | JWT 세션 유지 및 비인가 사용자의 타인 대시보드 접근 차단 (Middleware 보호) | P0 (Must) |
-| **AUTH-04** | 로그아웃 / 탈퇴 | 대시보드 내 로그아웃 및 계정 삭제 기능 | P1 (Should) |
+### 2.1 방문자 관점 시나리오 (다른 사람의 마이링크 페이지를 방문하는 과정)
+> **핵심 가치**: 복잡한 탐색 없이 3초 안에 대상자의 핵심 링크와 프로필을 확인하고 원하는 채널로 안전하게 이동
 
-### 3.2 링크 & 블록 관리 (Link Management)
-| ID | 기능명 | 상세 설명 | 우선순위 |
-|---|---|---|---|
-| **LINK-01** | 웹 링크 블록 추가 | 링크 제목(Title), 연결 URL을 입력하여 새 링크 블록 생성 | P0 (Must) |
-| **LINK-02** | 링크 ON/OFF 토글 | 삭제하지 않고도 특정 링크의 공개 페이지 노출 여부를 스위치로 즉시 전환 | P0 (Must) |
-| **LINK-03** | 드래그 앤 드롭 순서 변경 | 핸들러 아이콘을 드래그하여 링크들의 노출 순서(Display Order)를 직관적으로 변경 | P0 (Must) |
-| **LINK-04** | 소셜 아이콘 링크 바 | Instagram, YouTube, GitHub, X, Mail 등의 프로필 URL을 등록하여 페이지 상/하단에 아이콘 바 형태로 노출 | P0 (Must) |
-| **LINK-05** | 링크 수정 및 삭제 | 기등록된 링크 제목/URL 인라인 수정 및 삭제 확인 다이얼로그(Alert) | P0 (Must) |
-
-### 3.3 대시보드 편집기 UI (Dashboard Editor UX)
-| ID | 기능명 | 상세 설명 | 우선순위 |
-|---|---|---|---|
-| **DASH-01** | 2단 분할 레이아웃 | 데스크톱 기준 좌측: 프로필/링크/테마 제어판, 우측: 스마트폰 목업 라이브 프리뷰 | P0 (Must) |
-| **DASH-02** | 실시간 라이브 프리뷰 | 좌측에서 링크 텍스트 수정, 순서 변경, 테마 변경 시 우측 폰 목업에 즉시 렌더링 | P0 (Must) |
-| **DASH-03** | 프로필 기본 정보 편집 | 프로필 사진(URL 또는 업로드), 표시 이름(Display Name), 한 줄 소개(Bio) 편집 | P0 (Must) |
-| **DASH-04** | 내 페이지 URL 복사 | 상단 앱바에서 내 고유 링크(`mylink.com/@handle`)를 원클릭 복사하는 액션 버튼 | P0 (Must) |
-
-### 3.4 테마 & 스타일링 (Theme & Customization)
-| ID | 기능명 | 상세 설명 | 우선순위 |
-|---|---|---|---|
-| **THM-01** | 4대 프리셋 테마 | SOCAR Frame 2.0 기반으로 설계된 정갈한 4가지 프리셋 테마 중 선택<br>1. **Modern Blue**: 쏘카 블루 액센트 + 플랫 화이트 카드<br>2. **Clean White**: 미니멀 1px 그레이 보더 + 퓨어 화이트<br>3. **Charcoal Dark**: 차분하고 깊이 있는 다크 테마<br>4. **Soft Gray**: 은은한 블루 틴트 그레이 워시 테마 | P0 (Must) |
-| **THM-02** | 인터랙션 피백 | 버튼 탭 시 96% 스케일 다운(`socar-press`) 및 매끄러운 트랜지션 | P0 (Must) |
-| **THM-03** | 이모지 배제 원칙 | 이모지 대신 정식 SVG 라인/필 아이콘 적용으로 세련된 신뢰감 유지 | P0 (Must) |
-
-### 3.5 공개 프로필 페이지 (Public Profile Page)
-| ID | 기능명 | 상세 설명 | 우선순위 |
-|---|---|---|---|
-| **PUB-01** | 고유 URL 라우팅 | `/[handle]` 또는 `/@handle` 경로를 통해 해당 사용자의 공개 프로필 페이지 렌더링 | P0 (Must) |
-| **PUB-02** | 반응형 모바일 최적화 | 320px 모바일 스몰부터 태블릿/데스크톱까지 완벽한 1단 카드 레이아웃 유지 | P0 (Must) |
-| **PUB-03** | 링크 아웃바운드 클릭 | 링크 클릭 시 새 탭으로 타깃 URL 이동 및 클릭 이벤트 로깅 | P0 (Must) |
-| **PUB-04** | SEO & 메타태그 | 사용자 프로필 기반의 동적 Open Graph(OG) 태그 및 파비콘 제공 | P1 (Should) |
-
-### 3.6 애널리틱스 & 통계 (Analytics & Tracking)
-| ID | 기능명 | 상세 설명 | 우선순위 |
-|---|---|---|---|
-| **STAT-01** | 페이지 총 뷰 수 | 공개 프로필 페이지 방문 시 총 조회수(Views) 카운팅 | P0 (Must) |
-| **STAT-02** | 링크별 클릭 수 | 각 링크 블록 클릭 시 해당 링크의 총 클릭 수(Clicks) 카운팅 | P0 (Must) |
-| **STAT-03** | 대시보드 통계 배지 | 대시보드 상단 및 각 링크 카드에 총 뷰/클릭 수 실시간 뱃지 노출 | P0 (Must) |
+1. **페이지 진입**
+   - 사용자는 관심 있는 크리에이터나 개발자의 활동 링크를 한눈에 모아보기 위해 SNS 프로필이나 메시지에 공유된 마이링크 웹 링크를 터치/클릭한다.
+2. **프로필 및 브랜딩 확인**
+   - 사용자는 해당 인물이 누구인지 직관적으로 파악하기 위해 화면 상단의 프로필 아바타 이미지, 표시 이름, 한 줄 소개(Bio)를 확인한다.
+3. **소셜 채널 탐색**
+   - 사용자는 해당 인물의 다른 공식 소통 채널(GitHub, 이메일, Instagram 등)을 확인하기 위해 프로필 하단의 소셜 아이콘 바를 탐색한다.
+4. **목적 링크 선택**
+   - 사용자는 관심 있는 프로젝트, 최신 콘텐츠, 아티클 등으로 이동하기 위해 화면에 정갈하게 나열된 링크 카드 중 원하는 항목을 터치한다.
+5. **안전한 외부 이동**
+   - 사용자는 기존 마이링크 창을 닫지 않고 유지한 채 목적지 페이지를 둘러보기 위해 새 탭으로 열린 외부 웹사이트로 안전하게 이동한다.
 
 ---
 
-## 4. 데이터베이스 스키마 설계 (Prisma / PostgreSQL)
+### 2.2 소유자 관점 시나리오 (자신의 마이링크를 관리하는 과정: 링크 추가, 수정, 삭제)
+> **핵심 가치**: 별도의 복잡한 관리자 설정 없이, 프로필 화면에서 직접 링크를 즉시 추가·수정·삭제하고 브라우저에 안전하게 보존
 
-```prisma
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
+#### [시나리오 A: 신규 링크 추가]
+1. **추가 모달 호출**
+   - 사용자는 방문자들에게 새롭게 공유하고 싶은 프로젝트나 채널을 등록하기 위해 화면에 제공된 `+ 새 링크 추가` 버튼을 터치한다.
+2. **정보 입력 및 URL 유효성 검증**
+   - 사용자는 링크의 직관적인 제목(Title)과 이동할 웹 주소(URL)를 입력하기 위해 입력 필드에 텍스트를 작성하며, 잘못된 주소 등록을 방지하기 위해 실시간 URL 유효성 검사(HTTP/HTTPS 자동 보정 안내)를 확인한다.
+3. **등록 완료 및 즉시 확인**
+   - 사용자는 새 링크를 목록에 즉각 반영하기 위해 `추가하기` 버튼을 누르고, 페이지 새로고침 없이 즉시 목록 최상단에 새 링크 카드가 렌더링되는 것을 확인한다.
 
-generator client {
-  provider = "prisma-client-js"
-}
+#### [시나리오 B: 기존 링크 수정]
+1. **수정 모달 호출**
+   - 사용자는 기존 링크의 오타를 고치거나 변경된 URL로 갱신하기 위해 해당 링크 카드 우측의 `수정(옵션)` 버튼을 터치한다.
+2. **내용 갱신 및 유효성 재검증**
+   - 사용자는 수정할 링크 제목과 새 웹 주소를 반영하기 위해 입력값을 편집하고 유효한 URL 포맷인지 확인한다.
+3. **수정 내용 반영**
+   - 사용자는 수정된 내용을 확정하기 위해 `수정 완료` 버튼을 누르고, 해당 카드의 텍스트와 연결 링크가 즉각 갱신되는 것을 확인한다.
 
-// 1. 사용자 계정
-model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+#### [시나리오 C: 링크 노출 토글 및 삭제]
+1. **임시 노출 숨김 (토글)**
+   - 사용자는 링크를 완전히 지우지 않고 일시적으로 방문자에게 감추기 위해 해당 링크의 `노출 활성화(ON/OFF)` 스위치를 끈다.
+2. **완전 삭제**
+   - 사용자는 더 이상 운영하지 않는 링크를 목록에서 완전히 제거하기 위해 `삭제` 버튼을 터치하고, 삭제 확인 다이얼로그(Alert)를 승인하여 목록에서 영구 제거한다.
 
-  accounts      Account[]
-  sessions      Session[]
-  profile       Profile?
-}
+#### [시나리오 D: 로컬 스토리지 데이터 영속성 (Persistence)]
+1. **데이터 저장 검증**
+   - 사용자는 내가 방금 추가·수정한 링크들이 온전히 저장되었는지 확인하기 위해 브라우저 페이지를 새로고침(F5)하거나 탭을 닫았다가 다시 접속한다.
+2. **자동 복원 확인**
+   - 사용자는 백엔드 서버가 없어도 `localStorage`에 안전하게 보존된 프로필 정보와 링크 목록이 브라우저에 그대로 복원되어 있음을 확인한다.
 
-// 2. NextAuth OAuth 계정
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
+---
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+## 3. 메인 화면 (방문자 뷰) 와이어프레임 & UI 스펙
 
-  @@unique([provider, providerAccountId])
-}
+### 3.1 화면 레이아웃 와이어프레임 (모바일 375px 기준)
 
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
+```text
+┌──────────────────────────────────────────────────┐
+│ [TopAppBar]                                      │
+│  MyLink                           [공유하기 ↗]   │ <- 52px 고정 상단바 (1px 하단 보더)
+├──────────────────────────────────────────────────┤
+│                                                  │
+│   ┌──────────────────────────────────────────┐   │
+│   │ [Profile Section]                        │   │ <- 16px 라운드 화이트 카드
+│   │                                          │   │
+│   │                 ┌──────┐                 │   │
+│   │                 │ [사진]│                 │   │ <- 80x80px 아바타 (rounded-2xl)
+│   │                 └──────┘                 │   │
+│   │                 임 규 민                 │   │ <- Heading (Bold 700 / 20px)
+│   │      Robotics & Full-Stack AI Engineer   │   │ <- Title (Semibold 600 / 14px)
+│   │                                          │   │
+│   │   "현실의 하드웨어와 모던 웹을 연결합니다"   │   │ <- Body (Regular 400 / 13px)
+│   │                                          │   │
+│   │     ────────────────────────────────     │   │ <- 1px 헤어라인 디바이더 (#E5E8EF)
+│   │                                          │   │
+│   │    [ 깃허브 ]  [ 이메일 ]  [ 인스타 ]    │   │ <- 소셜 아이콘 바 (원형 SVG 버튼)
+│   │                                          │   │
+│   └──────────────────────────────────────────┘   │
+│                                                  │
+│   ┌──────────────────────────────────────────┐   │
+│   │ [Link Card 01]                           │   │ <- 14px 라운드 플랫 카드
+│   │  Lerobot S-101 배터리 전압 분류 로봇  [↗]│   │    (높이 56px, 호버/탭 시 scale 96%)
+│   └──────────────────────────────────────────┘   │
+│                                                  │
+│   ┌──────────────────────────────────────────┐   │
+│   │ [Link Card 02]                           │   │
+│   │  MyLink 프로젝트 GitHub 저장소        [↗]│   │
+│   └──────────────────────────────────────────┘   │
+│                                                  │
+│   ┌──────────────────────────────────────────┐   │
+│   │ [Link Card 03]                           │   │
+│   │  기술 블로그 & 연구 노트 바로가기     [↗]│   │
+│   └──────────────────────────────────────────┘   │
+│                                                  │
+│   ┌──────────────────────────────────────────┐   │
+│   │ [Link Card 04]                           │   │
+│   │  커리어 이력서 & 포트폴리오 PDF       [↗]│   │
+│   └──────────────────────────────────────────┘   │
+│                                                  │
+│                   - - - - -                      │
+│                                                  │
+│         [ + 나도 마이링크 만들기 (CTA) ]         │ <- 하단 액션 버튼 (ActionButton Primary)
+│                                                  │
+│           © 2026 MyLink. Powered by SOCAR Frame  │ <- 푸터 (Caption 11px)
+│                                                  │
+└──────────────────────────────────────────────────┘
+```
 
-// 3. 사용자 프로필 & 페이지 설정
-model Profile {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  handle      String   @unique // 예: "limgyumin" -> /@limgyumin
-  displayName String
-  bio         String?
-  avatarUrl   String?
-  theme       String   @default("modern-blue") // modern-blue, clean-white, charcoal-dark, soft-gray
-  viewsCount  Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+### 3.2 주요 컴포넌트 인터랙션 스펙
+- **TopAppBar**: 높이 52px, 흰색 배경, 하단 1px 보더(`#E5E8EF`), 공유하기 탭 시 클립보드 복사 피드백
+- **Profile Card**: `rounded-2xl`, 중앙 정렬, 소셜 아이콘은 36×36px 원형 버튼(`socar-press` 94% 스케일 다운)
+- **Link Card**: 높이 56px, `rounded-[14px]`, 흰색 배경 + 1px 보더, 탭 시 96% 스케일 다운, 새 창(`_blank`) 안전 이동
+- **ActionButton (CTA)**: 브랜드 블루(`#0078FF`) fill 버튼
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  links       Link[]
-  socials     SocialLink[]
-}
+---
 
-// 4. 링크 블록
-model Link {
-  id          String   @id @default(cuid())
-  profileId   String
-  title       String
-  url         String
-  isActive    Boolean  @default(true)
-  order       Int      @default(0)
-  clicksCount Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+## 4. Phase 1 (시연용 프로필 페이지) 핵심 요구사항 명세
 
-  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+### 4.1 프로필 페이지 뷰 (Profile View)
+| ID | 기능명 | 상세 설명 | 우선순위 |
+|---|---|---|---|
+| **P1-VIEW-01** | SOCAR Frame 2.0 디자인 | 단일 브랜드 블루(`#0078FF`), 1px 디바이더(`#E5E8EF`), 플랫 화이트 카드, Pretendard 서체 및 이모지 배제(정식 SVG 아이콘) 준수 | P0 (Must) |
+| **P1-VIEW-02** | 프로필 헤더 | 프로필 아바타 이미지, 표시 이름(Display Name), 한 줄 소개(Bio) 노출 | P0 (Must) |
+| **P1-VIEW-03** | 링크 목록 렌더링 | 등록된 활성 링크들을 카드 형태로 정갈하게 나열 (클릭 시 새 탭으로 타깃 URL 안전 이동) | P0 (Must) |
+| **P1-VIEW-04** | 소셜 아이콘 바 | GitHub, 이메일, Instagram 등 등록된 소셜 프로필 아이콘 링크 바 노출 | P0 (Must) |
+| **P1-VIEW-05** | 반응형 모바일 최적화 | 320px 모바일 스몰부터 데스크톱까지 완벽한 1단 카드 레이아웃 유지 | P0 (Must) |
 
-  @@index([profileId, order])
-}
+### 4.2 간편 링크 관리 & 로컬 스토리지 (Link Management & Persistence)
+| ID | 기능명 | 상세 설명 | 우선순위 |
+|---|---|---|---|
+| **P1-MNG-01** | `localStorage` 영속성 | 브라우저를 새로고침하거나 껐다 켜도 사용자가 추가/수정한 링크와 프로필 정보가 로컬 스토리지에 자동 저장·유지됨 | P0 (Must) |
+| **P1-MNG-02** | 간편 링크 추가 모달/인라인 | 페이지 상단 또는 하단의 `+ 링크 추가` 액션 버튼을 통해 간편하게 새 링크 등록 | P0 (Must) |
+| **P1-MNG-03** | URL 유효성 검사 | 링크 등록 시 `http://` 또는 `https://` 누락 자동 보정 및 올바른 웹 URL 형식 실시간 검증(잘못된 URL 입력 시 친절한 에러 안내) | P0 (Must) |
+| **P1-MNG-04** | 링크 수정 및 삭제 | 각 링크 카드 우측 옵션 메뉴를 통해 제목/URL 인라인 수정 및 삭제 가능 | P0 (Must) |
+| **P1-MNG-05** | 링크 ON/OFF 토글 | 삭제하지 않고도 특정 링크의 노출 여부를 스위치로 즉시 전환 | P0 (Must) |
+| **P1-MNG-06** | 기본 데모 데이터 제공 | 최초 방문 시 빈 화면이 아닌 시연용 기본 데이터(규민 님의 대표 링크들)가 로드되어 즉시 시연 가능 | P0 (Must) |
 
-// 5. 소셜 아이콘 링크
-model SocialLink {
-  id        String   @id @default(cuid())
-  profileId String
-  platform  String   // instagram, youtube, github, x, linkedin, email
-  url       String
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
+---
 
-  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+## 5. 데이터 구조 설계 (Phase 1 LocalStorage Schema)
+
+서버 DB 없이 브라우저 `localStorage`에 저장될 JSON 스키마 구조:
+
+```typescript
+// Key: "mylink_profile_data_v1"
+interface MyLinkStorageData {
+  profile: {
+    displayName: string;
+    bio: string;
+    avatarUrl: string;
+  };
+  socials: Array<{
+    platform: "github" | "mail" | "instagram" | "youtube" | "linkedin";
+    url: string;
+  }>;
+  links: Array<{
+    id: string;
+    title: string;
+    url: string;
+    isActive: boolean;
+    order: number;
+    createdAt: number;
+  }>;
+  theme: "modern-blue" | "clean-white" | "charcoal-dark";
 }
 ```
 
 ---
 
-## 5. 기술 스택 & 시스템 아키텍처
+## 6. Phase 1 제외 항목 (시연 범위 외)
 
-- **프론트엔드 / 백엔드**: Next.js 16 (App Router), React 19, TypeScript
-- **스타일링**: Tailwind CSS v4, SOCAR Frame 2.0 Color Tokens & Utilities
-- **폰트**: Pretendard Variable (jsDelivr CDN)
-- **인터랙션 / 드래그앤드롭**: `@hello-pangea/dnd` 또는 `@dnd-kit/core`
-- **인증**: NextAuth.js v5 (Auth.js) OAuth Providers
-- **데이터베이스 & ORM**: PostgreSQL (Supabase / Neon) + Prisma ORM
-- **배포 인프라**: Vercel (Next.js 호스팅) + Supabase (Database)
-
----
-
-## 6. 개발 마일스톤 및 로드맵
-
-```mermaid
-flowchart TD
-    M1["Milestone 1: 환경 구성 & DB 모델링\n- Prisma 연동\n- NextAuth v5 소셜 로그인 및 세션 구성"] --> M2["Milestone 2: 대시보드 코어 UX\n- 2단 분할 레이아웃\n- 프로필 정보 편집 & 실시간 모바일 목업"]
-    M2 --> M3["Milestone 3: 링크 블록 CRUD & DnD\n- 링크 추가/수정/삭제/토글\n- 드래그 앤 드롭 순서 변경\n- 소셜 아이콘 바"]
-    M3 --> M4["Milestone 4: 프리셋 테마 & 공개 페이지\n- 4종 테마 전환 엔진\n- /@handle 동적 라우팅 및 렌더링"]
-    M4 --> M5["Milestone 5: 클릭 & 뷰 통계 카운터\n- 아웃바운드 클릭 API\n- 대시보드 통계 카드 연동 및 QA"]
-```
+다음 항목들은 시연의 간결성과 속도를 위해 **Phase 1에서 명시적으로 제외**하며, 차후 단계에서 순차 도입합니다:
+1. **대시보드 (2단 분할 레이아웃 & 실시간 모바일 목업)**: 프로필 페이지 내 인라인/모달 편집으로 대체
+2. **통계 및 애널리틱스 (조회수/클릭수 카운터)**: 제외
+3. **사용자 회원가입 & 로그인 (NextAuth)**: 제외 (로컬 스토리지로 100% 동작)
+4. **원격 데이터베이스 (PostgreSQL / Prisma)**: 제외 (클라이언트 로컬 저장)
+5. **서버 사이드 동적 라우팅(`/@username`)**: 제외 (현재는 단일 프로필 페이지에서 시연)
 
 ---
 
-## 7. 비기능적 요구사항 (Non-Functional Requirements)
+## 7. Phase 1 기술 스택
 
-1. **응답 성능**: 공개 프로필 페이지는 Server-Side Rendering(SSR) 또는 Incremental Static Regeneration(ISR)을 활용하여 첫 로딩 속도 LCP < 1.0s 달성
-2. **모바일 사용성**: 모든 탭 타깃은 44px 이상 확보, 한 손 조작이 편한 하단/중앙 위주 인터페이스 배치
-3. **디자인 무결성**: SOCAR Frame 2.0 원칙에 따라 이모지 사용을 엄격히 배제하고 통일된 SVG 아이콘 사용
+- **프레임워크**: Next.js 16 (App Router), React 19, TypeScript
+- **상태 관리**: **Zustand** (`persist` 미들웨어로 `localStorage`와 자동 동기화)
+- **스타일링**: Tailwind CSS v4, SOCAR Frame 2.0 시각 토큰
+- **아이콘**: 커스텀 SVG 라인 아이콘 (이모지 배제)
+- **폰트**: Pretendard Variable
