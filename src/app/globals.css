@@ -1,59 +1,89 @@
+/* Pretendard Variable webfont */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
+
 @import "tailwindcss";
 
+
 :root {
-  --background: #fffef7;
-  --foreground: #000000;
+  /* SOCAR Frame 2.0 Color Tokens (Light mode only) */
+
+  /* Brand / Primary */
+  --socar-primary: #0078FF;
+  --socar-primary-strong: #0069FF;
+  --socar-primary-heavy: #0052E0;
+
+  /* Blue ramp */
+  --socar-blue-50: #EBF5FF;
+  --socar-blue-100: #D6EBFF;
+  --socar-blue-200: #99CEFF;
+  --socar-blue-500: #0078FF;
+
+  /* Neutral grays (blue-tinted) */
+  --socar-gray-50: #F9F9FB;
+  --socar-gray-100: #F2F3F8;
+  --socar-gray-200: #E5E8EF;
+  --socar-gray-300: #CBD1DC;
+  --socar-gray-400: #B4BBCB;
+  --socar-gray-500: #99A1B1;
+  --socar-gray-600: #697383;
+  --socar-gray-700: #4A5667;
+  --socar-gray-800: #354153;
+  --socar-gray-900: #262F3C;
+  --socar-gray-1000: #141A24;
+
+  /* Semantic text */
+  --socar-text-strong: #141A24;
+  --socar-text-primary: #354153;
+  --socar-text-secondary: #697383;
+  --socar-text-tertiary: #99A1B1;
+  --socar-text-disabled: #B4BBCB;
+
+  /* Semantic surface */
+  --socar-bg: #F2F3F8;
+  --socar-border: #E5E8EF;
+  --socar-divider: #E5E8EF;
+  --socar-white: #FFFFFF;
+
+  /* Status */
+  --socar-positive: #04CA81;
+  --socar-positive-weak: #E6FEF0;
+  --socar-caution: #FF8800;
+  --socar-caution-weak: #FFF8E6;
+  --socar-negative: #FF3A5B;
+  --socar-negative-weak: #FFF0F3;
+
+  /* Elevation */
+  --socar-shadow-sm: 0 1px 2px rgba(20, 26, 36, 0.04);
+  --socar-shadow-tip: 0 2px 4px rgba(0, 0, 0, 0.12);
+
+  --background: #FFFFFF;
+  --foreground: #354153;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f1015;
-    --foreground: #ffffff;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  overflow-x: hidden;
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Neobrutalism Grid Texture */
-.bg-neo-grid {
-  background-size: 28px 28px;
-  background-image: 
-    linear-gradient(to right, rgba(0, 0, 0, 0.07) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
+/* SOCAR press feedback */
+.socar-press {
+  transition: transform 100ms cubic-bezier(0.42, 0, 0.58, 1),
+              box-shadow 100ms cubic-bezier(0.42, 0, 0.58, 1);
+}
+.socar-press:active {
+  transform: scale(0.96);
 }
 
-@media (prefers-color-scheme: dark) {
-  .bg-neo-grid {
-    background-image: 
-      linear-gradient(to right, rgba(255, 255, 255, 0.07) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
-  }
-}
-
-/* Marquee Infinite Scrolling */
-@keyframes marquee {
-  0% { transform: translateX(0%); }
-  100% { transform: translateX(-50%); }
-}
-
-.animate-marquee {
-  display: flex;
-  width: max-content;
-  animation: marquee 24s linear infinite;
-}
-
-.animate-marquee:hover {
-  animation-play-state: paused;
+.socar-press-strong:active {
+  transform: scale(0.92);
 }
