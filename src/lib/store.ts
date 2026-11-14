@@ -10,6 +10,7 @@ import {
   subscribeToFirestoreLinks,
   isNotFoundError,
 } from "./firestoreLinks";
+import { normalizeCategory, normalizeLinks } from "./categories";
 
 /**
  * 한 번이라도 Firestore 스냅샷에 등장한 링크 id.
@@ -91,7 +92,7 @@ export const useLinkStore = create<LinkStoreState>()(
             title: newLinkData.title.trim(),
             description: newLinkData.description?.trim() || "",
             url: newLinkData.url.trim(),
-            category: newLinkData.category,
+            category: normalizeCategory(newLinkData.category),
             icon: newLinkData.icon || "globe",
             isActive: newLinkData.isActive ?? true,
             isFeatured: Boolean(newLinkData.isFeatured),
@@ -224,6 +225,13 @@ export const useLinkStore = create<LinkStoreState>()(
     {
       name: "mylink_profile_data_v1", // PRD 6.3 LocalStorage 저장 키
       storage: createJSONStorage(() => localStorage),
+      // v1: 카테고리 5개(ROBOTICS 등) → 3개(PORTFOLIO/WEBSITE/ETC) 변경에 따른 저장 데이터 변환
+      version: 1,
+      migrate: (persisted) => {
+        const state = persisted as Partial<LinkStoreState> | undefined;
+        if (state?.links) state.links = normalizeLinks(state.links);
+        return state as LinkStoreState;
+      },
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },

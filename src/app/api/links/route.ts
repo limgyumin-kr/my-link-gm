@@ -6,7 +6,7 @@ import { LinkItem } from "@/types/link";
 /**
  * GET /api/links
  * 쿼리 파라미터 지원:
- * - category: ROBOTICS | DEVELOPMENT | PORTFOLIO | ARTICLE | COMMUNITY | ALL
+ * - category: PORTFOLIO | WEBSITE | ETC | ALL
  * - activeOnly: boolean (true일 경우 활성화된 링크만 반환)
  *
  * Firestore users/anonymous/links 경로의 링크를 우선 로드하고, 기본 목데이터와 병합하여 반환합니다.

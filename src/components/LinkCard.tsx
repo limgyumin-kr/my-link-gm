@@ -5,6 +5,7 @@ import { LinkItem } from "@/types/link";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { CategoryIcon, ExternalLink, Pencil, Trash2 } from "@/components/icons";
+import { CATEGORY_LABELS } from "@/lib/categories";
 
 interface LinkCardProps {
   link: LinkItem;
@@ -15,13 +16,7 @@ interface LinkCardProps {
   onClickLink: (id: string) => void;
 }
 
-const CATEGORY_NAMES: Record<string, string> = {
-  ROBOTICS: "로보틱스",
-  DEVELOPMENT: "개발 & 코드",
-  PORTFOLIO: "포트폴리오",
-  ARTICLE: "아티클",
-  COMMUNITY: "커뮤니티",
-};
+const CATEGORY_NAMES = CATEGORY_LABELS;
 
 export function LinkCard({
   link,

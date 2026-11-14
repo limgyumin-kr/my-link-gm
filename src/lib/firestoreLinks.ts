@@ -9,9 +9,11 @@ import {
   orderBy,
   onSnapshot,
   Unsubscribe,
+  DocumentData,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { LinkItem, LinkCategory } from "@/types/link";
+import { LinkItem } from "@/types/link";
+import { normalizeCategory, normalizeLinkCategory } from "./categories";
 
 /**
  * Firestore 링크 컬렉션 경로: users/anonymous/links
@@ -25,6 +27,27 @@ export const getLinksCollectionRef = () => {
 export const getLinkDocRef = (id: string) => {
   return doc(db, "users", "anonymous", "links", id);
 };
+
+/**
+ * Firestore 문서 데이터 → LinkItem 변환.
+ * 이전 카테고리(ROBOTICS, ARTICLE 등)로 저장된 문서는 새 3개 카테고리로 자동 변환한다.
+ */
+function docToLink(id: string, data: DocumentData): LinkItem {
+  return normalizeLinkCategory({
+    id,
+    title: data.title ?? "",
+    description: data.description ?? "",
+    url: data.url ?? "",
+    category: data.category,
+    icon: data.icon ?? "globe",
+    isActive: data.isActive ?? true,
+    isFeatured: Boolean(data.isFeatured),
+    order: typeof data.order === "number" ? data.order : 0,
+    clickCount: typeof data.clickCount === "number" ? data.clickCount : 0,
+    createdAt: data.createdAt ?? new Date().toISOString(),
+    updatedAt: data.updatedAt ?? new Date().toISOString(),
+  });
+}
 
 /**
  * Firestore users/anonymous/links 경로에 새 링크 저장
@@ -43,7 +66,7 @@ export async function addLinkToFirestore(
     title: newLinkData.title.trim(),
     description: newLinkData.description?.trim() || "",
     url: newLinkData.url.trim(),
-    category: (newLinkData.category as LinkCategory) || "ROBOTICS",
+    category: normalizeCategory(newLinkData.category),
     icon: newLinkData.icon || "globe",
     isActive: newLinkData.isActive ?? true,
     isFeatured: Boolean(newLinkData.isFeatured),
@@ -68,21 +91,7 @@ export async function getLinksFromFirestore(): Promise<LinkItem[]> {
     const links: LinkItem[] = [];
 
     snapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      links.push({
-        id: docSnap.id,
-        title: data.title ?? "",
-        description: data.description ?? "",
-        url: data.url ?? "",
-        category: (data.category as LinkCategory) ?? "ROBOTICS",
-        icon: data.icon ?? "globe",
-        isActive: data.isActive ?? true,
-        isFeatured: Boolean(data.isFeatured),
-        order: typeof data.order === "number" ? data.order : 0,
-        clickCount: typeof data.clickCount === "number" ? data.clickCount : 0,
-        createdAt: data.createdAt ?? new Date().toISOString(),
-        updatedAt: data.updatedAt ?? new Date().toISOString(),
-      });
+      links.push(docToLink(docSnap.id, docSnap.data()));
     });
 
     return links;
@@ -154,21 +163,7 @@ export function subscribeToFirestoreLinks(
     (snapshot) => {
       const links: LinkItem[] = [];
       snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        links.push({
-          id: docSnap.id,
-          title: data.title ?? "",
-          description: data.description ?? "",
-          url: data.url ?? "",
-          category: (data.category as LinkCategory) ?? "ROBOTICS",
-          icon: data.icon ?? "globe",
-          isActive: data.isActive ?? true,
-          isFeatured: Boolean(data.isFeatured),
-          order: typeof data.order === "number" ? data.order : 0,
-          clickCount: typeof data.clickCount === "number" ? data.clickCount : 0,
-          createdAt: data.createdAt ?? new Date().toISOString(),
-          updatedAt: data.updatedAt ?? new Date().toISOString(),
-        });
+        links.push(docToLink(docSnap.id, docSnap.data()));
       });
       onUpdate(links);
     },

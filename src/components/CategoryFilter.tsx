@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { LINK_CATEGORIES } from "@/lib/categories";
 
 interface CategoryFilterProps {
   selectedCategory: string;
@@ -10,11 +11,7 @@ interface CategoryFilterProps {
 
 const CATEGORY_TABS: { label: string; value: string }[] = [
   { label: "전체", value: "ALL" },
-  { label: "로보틱스", value: "ROBOTICS" },
-  { label: "개발 & 코드", value: "DEVELOPMENT" },
-  { label: "포트폴리오", value: "PORTFOLIO" },
-  { label: "아티클", value: "ARTICLE" },
-  { label: "커뮤니티", value: "COMMUNITY" },
+  ...LINK_CATEGORIES.map(({ label, value }) => ({ label, value })),
 ];
 
 export function CategoryFilter({

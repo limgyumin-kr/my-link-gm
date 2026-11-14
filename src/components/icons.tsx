@@ -91,20 +91,20 @@ export function CategoryIcon({ category, icon, className = "w-4 h-4" }: Category
         return <MessageCircle className={className} />;
       case "archive":
         return <Archive className={className} />;
+      case "globe":
+        return <Globe className={className} />;
+      case "layers":
+        return <Layers className={className} />;
     }
   }
 
   switch (category) {
-    case "ROBOTICS":
-      return <Bot className={className} />;
-    case "DEVELOPMENT":
-      return <Code className={className} />;
     case "PORTFOLIO":
       return <FileText className={className} />;
-    case "ARTICLE":
-      return <BookOpen className={className} />;
-    case "COMMUNITY":
-      return <MessageCircle className={className} />;
+    case "WEBSITE":
+      return <Globe className={className} />;
+    case "ETC":
+      return <Layers className={className} />;
     default:
       return <Globe className={className} />;
   }

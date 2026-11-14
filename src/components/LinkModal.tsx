@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { LinkItem, LinkCategory } from "@/types/link";
 import { validateUrl, normalizeUrl } from "@/lib/url";
 import { CategoryIcon } from "@/components/icons";
+import { LINK_CATEGORIES, DEFAULT_CATEGORY, normalizeCategory } from "@/lib/categories";
 import { AlertCircle } from "lucide-react";
 
 interface LinkModalProps {
@@ -33,13 +34,7 @@ interface LinkModalProps {
   buttonColor?: string;
 }
 
-const CATEGORIES: { label: string; value: LinkCategory; icon: string }[] = [
-  { label: "로보틱스", value: "ROBOTICS", icon: "bot" },
-  { label: "개발 & 코드", value: "DEVELOPMENT", icon: "code" },
-  { label: "포트폴리오", value: "PORTFOLIO", icon: "file-text" },
-  { label: "아티클 & 블로그", value: "ARTICLE", icon: "book-open" },
-  { label: "커뮤니티", value: "COMMUNITY", icon: "message-circle" },
-];
+const CATEGORIES = LINK_CATEGORIES;
 
 export function LinkModal({
   isOpen,
@@ -51,7 +46,7 @@ export function LinkModal({
   const [title, setTitle] = useState(initialData?.title ?? "");
   const [description, setDescription] = useState(initialData?.description ?? "");
   const [rawUrl, setRawUrl] = useState(initialData?.url ?? "");
-  const [category, setCategory] = useState<LinkCategory>(initialData?.category ?? "ROBOTICS");
+  const [category, setCategory] = useState<LinkCategory>(initialData ? normalizeCategory(initialData.category) : DEFAULT_CATEGORY);
   const [isActive, setIsActive] = useState(initialData?.isActive ?? true);
   const [isFeatured, setIsFeatured] = useState(Boolean(initialData?.isFeatured));
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,7 +64,7 @@ export function LinkModal({
     setTitle(initialData?.title ?? "");
     setDescription(initialData?.description ?? "");
     setRawUrl(initialData?.url ?? "");
-    setCategory(initialData?.category ?? "ROBOTICS");
+    setCategory(initialData ? normalizeCategory(initialData.category) : DEFAULT_CATEGORY);
     setIsActive(initialData?.isActive ?? true);
     setIsFeatured(Boolean(initialData?.isFeatured));
     setErrors({});
@@ -247,7 +242,7 @@ export function LinkModal({
           {/* 카테고리 선택 */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-[#141A24]">카테고리</label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {CATEGORIES.map((cat) => {
                 const isSelected = category === cat.value;
                 return (

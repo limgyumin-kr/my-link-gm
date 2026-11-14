@@ -1,4 +1,4 @@
-export type LinkCategory = "ROBOTICS" | "DEVELOPMENT" | "PORTFOLIO" | "ARTICLE" | "COMMUNITY";
+export type LinkCategory = "PORTFOLIO" | "WEBSITE" | "ETC";
 
 export type SocialPlatform = "github" | "mail" | "instagram" | "youtube" | "linkedin";
 
