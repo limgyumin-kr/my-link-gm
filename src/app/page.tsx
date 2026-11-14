@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useLinkStore } from "@/lib/store";
+import { useIsClient } from "@/lib/useIsClient";
 import { TopAppBar } from "@/components/TopAppBar";
 import { ProfileSection } from "@/components/ProfileSection";
 import { CategoryFilter } from "@/components/CategoryFilter";
@@ -32,7 +33,7 @@ export default function MyLinkPage() {
     subscribeToFirestore,
   } = useLinkStore();
 
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsClient();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<LinkItem | null>(null);
   const [deletingLink, setDeletingLink] = useState<LinkItem | null>(null);
@@ -40,7 +41,6 @@ export default function MyLinkPage() {
 
   // SSR Hydration 불일치 방지 및 Firestore 실시간 동기화
   useEffect(() => {
-    setMounted(true);
     fetchLinksFromFirestore();
     const unsubscribe = subscribeToFirestore();
     return () => {

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useLinkStore } from "@/lib/store";
+import { useIsClient } from "@/lib/useIsClient";
 import { LinkCategory, LinkItem } from "@/types/link";
 import { LinkModal } from "@/components/LinkModal";
 import { EditableLinkRow } from "@/components/EditableLinkRow";
@@ -25,7 +26,7 @@ export default function MyPage() {
     fetchLinksFromFirestore,
     subscribeToFirestore,
   } = useLinkStore();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsClient();
 
   // 다이얼로그 모달 상태
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -40,7 +41,6 @@ export default function MyPage() {
   const instagramUrl = "https://instagram.com/lnstargramn";
 
   useEffect(() => {
-    setMounted(true);
     fetchLinksFromFirestore();
     const unsubscribe = subscribeToFirestore();
     return () => {
