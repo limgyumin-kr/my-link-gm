@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,8 @@ interface DeleteConfirmDialogProps {
   isOpen: boolean;
   title?: string;
   onClose: () => void;
-  onConfirm: () => void;
+  /** 삭제 성공 시 resolve, 실패 시 reject. 성공 시에만 다이얼로그가 닫힌다. */
+  onConfirm: () => void | Promise<void>;
 }
 
 export function DeleteConfirmDialog({
@@ -24,8 +25,22 @@ export function DeleteConfirmDialog({
   onClose,
   onConfirm,
 }: DeleteConfirmDialogProps) {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleConfirm = async () => {
+    setIsDeleting(true);
+    try {
+      await onConfirm();
+      onClose();
+    } catch {
+      // 실패 안내는 호출자(토스트)에서 처리하고, 다이얼로그는 열어둬서 재시도 가능하게 함
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !isDeleting && onClose()}>
       <DialogContent className="max-w-[380px]">
         <DialogHeader>
           <DialogTitle>링크 삭제</DialogTitle>
@@ -43,17 +58,11 @@ export function DeleteConfirmDialog({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="mt-4 gap-2 sm:gap-0">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} disabled={isDeleting}>
             취소
           </Button>
-          <Button
-            variant="destructive"
-            onClick={() => {
-              onConfirm();
-              onClose();
-            }}
-          >
-            삭제하기
+          <Button variant="destructive" onClick={handleConfirm} disabled={isDeleting}>
+            {isDeleting ? "삭제 중..." : "삭제하기"}
           </Button>
         </DialogFooter>
       </DialogContent>

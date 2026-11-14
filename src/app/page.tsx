@@ -112,10 +112,15 @@ export default function MyLinkPage() {
   };
 
   const handleConfirmDelete = async () => {
-    if (deletingLink) {
+    if (!deletingLink) return;
+    try {
       await deleteLink(deletingLink.id);
       showToast("링크가 삭제되었습니다.");
       setDeletingLink(null);
+    } catch (error) {
+      console.error("링크 삭제 오류:", error);
+      showToast("링크 삭제 중 오류가 발생했습니다.");
+      throw error;
     }
   };
 

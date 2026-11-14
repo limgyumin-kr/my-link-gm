@@ -8,7 +8,24 @@ import {
   updateLinkInFirestore,
   deleteLinkFromFirestore,
   subscribeToFirestoreLinks,
+  isNotFoundError,
 } from "./firestoreLinks";
+
+/**
+ * 한 번이라도 Firestore 스냅샷에 등장한 링크 id.
+ * 스냅샷에서 사라지면 (다른 탭/기기에서 삭제됨) 로컬 목록에서도 제거하기 위해 사용.
+ * Firestore에 없는 로컬 데모 링크(link_01 등)는 여기에 들어가지 않으므로 유지된다.
+ */
+const knownFirestoreIds = new Set<string>();
+
+function mergeFirestoreLinks(localLinks: LinkItem[], firestoreLinks: LinkItem[]): LinkItem[] {
+  const firestoreIds = new Set(firestoreLinks.map((l) => l.id));
+  const localOnly = localLinks.filter(
+    (l) => !firestoreIds.has(l.id) && !knownFirestoreIds.has(l.id)
+  );
+  firestoreLinks.forEach((l) => knownFirestoreIds.add(l.id));
+  return [...firestoreLinks, ...localOnly];
+}
 
 interface LinkStoreState {
   profile: UserProfile;
@@ -88,21 +105,53 @@ export const useLinkStore = create<LinkStoreState>()(
         }
       },
 
+      // 낙관적 업데이트 → Firestore updateDoc → 실패 시 롤백 후 에러 전파
       updateLink: async (id, updates) => {
+        const previous = get().links.find((link) => link.id === id);
+        if (!previous) throw new Error(`링크를 찾을 수 없습니다: ${id}`);
+
         const now = new Date().toISOString();
         set((state) => ({
           links: state.links.map((link) =>
-            link.id === id ? { ...link, ...updates, updatedAt: now } : link
+            link.id === id ? { ...link, ...updates, id, updatedAt: now } : link
           ),
         }));
-        await updateLinkInFirestore(id, updates);
+
+        try {
+          await updateLinkInFirestore(id, updates);
+        } catch (error) {
+          // Firestore에 없는 로컬 데모 링크는 로컬 수정만 유지
+          if (isNotFoundError(error)) return;
+          set((state) => ({
+            links: state.links.map((link) => (link.id === id ? previous : link)),
+          }));
+          throw error;
+        }
       },
 
+      // 낙관적 삭제 → Firestore deleteDoc → 실패 시 원래 위치로 복구 후 에러 전파
       deleteLink: async (id) => {
+        const currentLinks = get().links;
+        const index = currentLinks.findIndex((link) => link.id === id);
+        if (index === -1) return;
+        const removed = currentLinks[index];
+
         set((state) => ({
           links: state.links.filter((link) => link.id !== id),
         }));
-        await deleteLinkFromFirestore(id);
+
+        try {
+          await deleteLinkFromFirestore(id);
+          knownFirestoreIds.delete(id);
+        } catch (error) {
+          set((state) => {
+            if (state.links.some((link) => link.id === id)) return state;
+            const restored = [...state.links];
+            restored.splice(Math.min(index, restored.length), 0, removed);
+            return { links: restored };
+          });
+          throw error;
+        }
       },
 
       toggleLinkActive: async (id) => {
@@ -117,7 +166,11 @@ export const useLinkStore = create<LinkStoreState>()(
           ),
         }));
 
-        await updateLinkInFirestore(id, { isActive: newActive });
+        try {
+          await updateLinkInFirestore(id, { isActive: newActive });
+        } catch (error) {
+          if (!isNotFoundError(error)) console.warn("toggleLinkActive Firestore 동기화 실패:", error);
+        }
       },
 
       incrementClickCount: async (id) => {
@@ -128,7 +181,11 @@ export const useLinkStore = create<LinkStoreState>()(
             link.id === id ? { ...link, clickCount: newCount } : link
           ),
         }));
-        await updateLinkInFirestore(id, { clickCount: newCount });
+        try {
+          await updateLinkInFirestore(id, { clickCount: newCount });
+        } catch (error) {
+          if (!isNotFoundError(error)) console.warn("incrementClickCount Firestore 동기화 실패:", error);
+        }
       },
 
       resetToMockData: () => {
@@ -144,13 +201,7 @@ export const useLinkStore = create<LinkStoreState>()(
         try {
           const firestoreLinks = await getLinksFromFirestore();
           if (firestoreLinks.length > 0) {
-            set((state) => {
-              const firestoreIds = new Set(firestoreLinks.map((l) => l.id));
-              const nonFirestoreLinks = state.links.filter((l) => !firestoreIds.has(l.id));
-              return {
-                links: [...firestoreLinks, ...nonFirestoreLinks],
-              };
-            });
+            set((state) => ({ links: mergeFirestoreLinks(state.links, firestoreLinks) }));
           }
         } catch (error) {
           console.error("fetchLinksFromFirestore error:", error);
@@ -160,15 +211,8 @@ export const useLinkStore = create<LinkStoreState>()(
       subscribeToFirestore: () => {
         try {
           const unsubscribe = subscribeToFirestoreLinks((firestoreLinks) => {
-            if (firestoreLinks.length > 0) {
-              set((state) => {
-                const firestoreIds = new Set(firestoreLinks.map((l) => l.id));
-                const nonFirestoreLinks = state.links.filter((l) => !firestoreIds.has(l.id));
-                return {
-                  links: [...firestoreLinks, ...nonFirestoreLinks],
-                };
-              });
-            }
+            // 빈 스냅샷(마지막 링크 삭제)도 반영해야 하므로 길이 조건 없이 병합
+            set((state) => ({ links: mergeFirestoreLinks(state.links, firestoreLinks) }));
           });
           return unsubscribe;
         } catch (error) {

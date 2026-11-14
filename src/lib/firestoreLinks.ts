@@ -99,36 +99,44 @@ export async function updateLinkInFirestore(
   id: string,
   updates: Partial<LinkItem>
 ): Promise<void> {
-  try {
-    const docRef = getLinkDocRef(id);
-    const cleanUpdates: Record<string, unknown> = {
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    };
+  const docRef = getLinkDocRef(id);
+  // id/createdAt은 수정 대상이 아니므로 제외
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { id: _id, createdAt: _createdAt, ...rest } = updates;
+  const cleanUpdates: Record<string, unknown> = {
+    ...rest,
+    updatedAt: new Date().toISOString(),
+  };
 
-    // undefined 제거
-    Object.keys(cleanUpdates).forEach((key) => {
-      if (cleanUpdates[key] === undefined) {
-        delete cleanUpdates[key];
-      }
-    });
+  // Firestore는 undefined 값을 허용하지 않으므로 제거
+  Object.keys(cleanUpdates).forEach((key) => {
+    if (cleanUpdates[key] === undefined) {
+      delete cleanUpdates[key];
+    }
+  });
 
-    await updateDoc(docRef, cleanUpdates);
-  } catch (error) {
-    console.warn("updateLinkInFirestore skipped or failed:", error);
-  }
+  // 실패 시 호출자가 롤백/에러 안내를 할 수 있도록 에러를 그대로 던짐
+  await updateDoc(docRef, cleanUpdates);
 }
 
 /**
  * Firestore users/anonymous/links 경로의 링크 삭제
+ * 실패 시 에러를 그대로 던짐 (호출자에서 롤백 처리)
  */
 export async function deleteLinkFromFirestore(id: string): Promise<void> {
-  try {
-    const docRef = getLinkDocRef(id);
-    await deleteDoc(docRef);
-  } catch (error) {
-    console.warn("deleteLinkFromFirestore skipped or failed:", error);
-  }
+  await deleteDoc(getLinkDocRef(id));
+}
+
+/**
+ * Firestore 문서가 존재하지 않아 발생한 에러인지 확인 (로컬 전용 데모 링크 판별용)
+ */
+export function isNotFoundError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === "not-found"
+  );
 }
 
 /**

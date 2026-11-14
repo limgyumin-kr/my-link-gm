@@ -6,9 +6,9 @@ import Link from "next/link";
 import { useLinkStore } from "@/lib/store";
 import { LinkCategory, LinkItem } from "@/types/link";
 import { LinkModal } from "@/components/LinkModal";
+import { EditableLinkRow } from "@/components/EditableLinkRow";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import {
-  ExternalLink,
-  Trash2,
   ArrowLeft,
   Plus,
   Mail,
@@ -20,6 +20,7 @@ export default function MyPage() {
   const {
     links,
     addLink,
+    updateLink,
     deleteLink,
     fetchLinksFromFirestore,
     subscribeToFirestore,
@@ -28,6 +29,8 @@ export default function MyPage() {
 
   // 다이얼로그 모달 상태
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingLink, setDeletingLink] = useState<LinkItem | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [copiedEmail, setCopiedEmail] = useState(false);
 
@@ -81,6 +84,33 @@ export default function MyPage() {
     } catch (error) {
       console.error("링크 추가 오류:", error);
       showToast("링크 추가 중 문제가 발생했습니다.");
+    }
+  };
+
+  // 인라인 편집 저장 (Firestore updateDoc). 실패 시 에러를 던져 편집 상태를 유지시킨다.
+  const handleInlineSave = async (id: string, updates: { title: string; url: string }) => {
+    try {
+      await updateLink(id, updates);
+      setEditingId(null);
+      showToast(`'${updates.title}' 링크가 수정되었습니다.`);
+    } catch (error) {
+      console.error("링크 수정 오류:", error);
+      showToast("링크 수정 중 문제가 발생했습니다.");
+      throw error;
+    }
+  };
+
+  // 삭제 확인 (Firestore deleteDoc). 실패 시 에러를 던져 모달을 열어둔다.
+  const handleConfirmDelete = async () => {
+    if (!deletingLink) return;
+    const { id, title } = deletingLink;
+    try {
+      await deleteLink(id);
+      showToast(`'${title}' 링크가 삭제되었습니다.`);
+    } catch (error) {
+      console.error("링크 삭제 오류:", error);
+      showToast("링크 삭제 중 문제가 발생했습니다.");
+      throw error;
     }
   };
 
@@ -203,37 +233,18 @@ export default function MyPage() {
           ) : (
             <div className="flex flex-col gap-2">
               {links.map((item: LinkItem) => (
-                <div
+                <EditableLinkRow
                   key={item.id}
-                  onClick={() => window.open(item.url, "_blank", "noopener,noreferrer")}
-                  className="group relative bg-white hover:bg-[#F9F9FB] rounded-[14px] border border-[#E5E8EF] hover:border-[#CBD1DC] px-4 py-3.5 transition flex items-center justify-between gap-3 cursor-pointer shadow-xs socar-press active:scale-[0.98]"
-                >
-                  {/* 주제(제목)만 보이게 함 (설명, 도메인, 조회수 등 배제) */}
-                  <span className="text-sm font-bold text-[#141A24] group-hover:text-[#5B5FC7] transition-colors truncate">
-                    {item.title}
-                  </span>
-
-                  {/* 우측 링크 이동 화살표 및 삭제 버튼 */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    <ExternalLink className="w-4 h-4 text-[#99A1B1] group-hover:text-[#5B5FC7] transition-colors" />
-                    
-                    {/* 삭제 버튼 */}
-                    <button
-                      type="button"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        if (confirm(`'${item.title}' 링크를 삭제하시겠습니까?`)) {
-                          await deleteLink(item.id);
-                          showToast("링크가 삭제되었습니다.");
-                        }
-                      }}
-                      className="w-7 h-7 rounded-[8px] text-[#CBD1DC] hover:text-[#FF3A5B] hover:bg-[#FFF0F3] flex items-center justify-center transition"
-                      title="삭제"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
+                  link={item}
+                  isEditing={editingId === item.id}
+                  onStartEdit={() => setEditingId(item.id)}
+                  onCancelEdit={() => setEditingId(null)}
+                  onSave={(updates) => handleInlineSave(item.id, updates)}
+                  onRequestDelete={() => {
+                    setEditingId(null);
+                    setDeletingLink(item);
+                  }}
+                />
               ))}
             </div>
           )}
@@ -251,6 +262,14 @@ export default function MyPage() {
         onClose={() => setIsDialogOpen(false)}
         onSave={handleDialogSave}
         buttonColor="#5B5FC7"
+      />
+
+      {/* 삭제 확인 모달 */}
+      <DeleteConfirmDialog
+        isOpen={deletingLink !== null}
+        title={deletingLink?.title}
+        onClose={() => setDeletingLink(null)}
+        onConfirm={handleConfirmDelete}
       />
 
       {/* 정갈한 토스트 알림 */}
