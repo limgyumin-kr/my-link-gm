@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { UserProfile, SocialLink } from "@/types/link";
-import { SocialIcon, Check, Copy } from "@/components/icons";
+import { SocialIcon, Check } from "@/components/icons";
 
 interface ProfileSectionProps {
   profile: UserProfile;

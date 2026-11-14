@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -48,37 +48,32 @@ export function LinkModal({
   initialData,
   buttonColor = "#0078FF",
 }: LinkModalProps) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [rawUrl, setRawUrl] = useState("");
-  const [category, setCategory] = useState<LinkCategory>("ROBOTICS");
-  const [isActive, setIsActive] = useState(true);
-  const [isFeatured, setIsFeatured] = useState(false);
+  const [title, setTitle] = useState(initialData?.title ?? "");
+  const [description, setDescription] = useState(initialData?.description ?? "");
+  const [rawUrl, setRawUrl] = useState(initialData?.url ?? "");
+  const [category, setCategory] = useState<LinkCategory>(initialData?.category ?? "ROBOTICS");
+  const [isActive, setIsActive] = useState(initialData?.isActive ?? true);
+  const [isFeatured, setIsFeatured] = useState(Boolean(initialData?.isFeatured));
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 필드별 유효성 검사 에러 상태
   const [errors, setErrors] = useState<{ title?: string; url?: string }>({});
 
-  useEffect(() => {
+  // 모달이 열리고 닫히거나 편집 대상이 바뀌면 폼을 초기화한다.
+  // useEffect에서 setState를 호출하는 대신, 렌더 중에 이전 props와 비교해 즉시 갱신하는
+  // React 권장 패턴 사용 (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+  const [prevProps, setPrevProps] = useState({ isOpen, initialData });
+  if (prevProps.isOpen !== isOpen || prevProps.initialData !== initialData) {
+    setPrevProps({ isOpen, initialData });
     setIsSubmitting(false);
-    if (initialData) {
-      setTitle(initialData.title);
-      setDescription(initialData.description || "");
-      setRawUrl(initialData.url);
-      setCategory(initialData.category);
-      setIsActive(initialData.isActive);
-      setIsFeatured(Boolean(initialData.isFeatured));
-      setErrors({});
-    } else {
-      setTitle("");
-      setDescription("");
-      setRawUrl("");
-      setCategory("ROBOTICS");
-      setIsActive(true);
-      setIsFeatured(false);
-      setErrors({});
-    }
-  }, [initialData, isOpen]);
+    setTitle(initialData?.title ?? "");
+    setDescription(initialData?.description ?? "");
+    setRawUrl(initialData?.url ?? "");
+    setCategory(initialData?.category ?? "ROBOTICS");
+    setIsActive(initialData?.isActive ?? true);
+    setIsFeatured(Boolean(initialData?.isFeatured));
+    setErrors({});
+  }
 
   // URL 입력란 포커스 아웃 시 자동 정규화 및 검증
   const handleUrlBlur = () => {
