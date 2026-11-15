@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { User } from "firebase/auth";
 import { toast } from "sonner";
-import { useAuthStore, getDisplayName } from "@/lib/authStore";
+import { useAuthStore, getDisplayName, getDefaultUsername } from "@/lib/authStore";
 import { useLinkStore } from "@/lib/store";
 import {
   DropdownMenu,
@@ -69,13 +69,15 @@ export function ProfileMenu({ user }: { user: User }) {
   const router = useRouter();
   const pathname = usePathname();
   const signOut = useAuthStore((s) => s.signOut);
+  const profile = useAuthStore((s) => s.profile);
   const links = useLinkStore((s) => s.links);
   const linksStatus = useLinkStore((s) => s.linksStatus);
   const isManageMode = useLinkStore((s) => s.isManageMode);
   const setManageMode = useLinkStore((s) => s.setManageMode);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
-  const name = getDisplayName(user.email, user.displayName);
+  const name = getDisplayName(profile, user);
+  const username = profile?.username ?? getDefaultUsername(user);
   const publicCount = links.filter((l) => l.isActive).length;
   const isHome = pathname === "/";
   const isMyPage = pathname === "/mypage";
@@ -138,6 +140,7 @@ export function ProfileMenu({ user }: { user: User }) {
           <Avatar user={user} name={name} size={40} />
           <div className="min-w-0">
             <p className="text-sm font-bold text-[#141A24] truncate">{name}님</p>
+            <p className="text-[11px] text-[#0078FF] font-semibold truncate">@{username}</p>
             <p className="text-[11px] text-[#697383] truncate">{user.email}</p>
           </div>
         </div>

@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useAuthStore } from "@/lib/authStore";
 import { AuthButton } from "@/components/AuthButton";
 import { UserInfoCard } from "@/components/UserInfoCard";
+import { ProfileEditCard } from "@/components/ProfileEditCard";
 import { LoginRequiredCard } from "@/components/LoginRequiredCard";
 import { LinkCategory, LinkItem } from "@/types/link";
 import { LinkModal } from "@/components/LinkModal";
@@ -127,6 +128,9 @@ export default function MyPage() {
           </Link>
           <AuthButton />
         </div>
+
+        {/* 프로필 수정 영역 (로그인 시, 마이페이지 최상단) */}
+        {authStatus === "signedIn" && <ProfileEditCard />}
 
         {/* 1~5. 프로필 섹션 (Center, Top 프로필 사진 & 정보) */}
         <section className="bg-white rounded-2xl border border-[#E5E8EF] p-6 shadow-xs flex flex-col items-center text-center">

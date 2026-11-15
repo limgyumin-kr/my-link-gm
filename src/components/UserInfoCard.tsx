@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { useAuthStore, getDisplayName } from "@/lib/authStore";
+import { useAuthStore, getDisplayName, getDefaultUsername } from "@/lib/authStore";
 
 function formatDateTime(iso?: string): string {
   if (!iso) return "-";
@@ -23,12 +23,13 @@ function formatDateTime(iso?: string): string {
 export function UserInfoCard({ linkCount }: { linkCount?: number }) {
   const user = useAuthStore((s) => s.user);
   const userDoc = useAuthStore((s) => s.userDoc);
+  const profile = useAuthStore((s) => s.profile);
 
   if (!user) return null;
 
-  // Firestore 문서가 아직 도착하지 않았다면 Auth 정보로 먼저 표시
-  // 표시 이름은 이메일 앞부분 기준 (저장된 문서보다 현재 로그인 정보의 이메일을 우선)
-  const name = getDisplayName(user.email ?? userDoc?.email, user.displayName);
+  // 표시 이름/username은 users/{uid}/profile/main 기준 (아직 없으면 Google 이름·이메일 앞부분으로 대체)
+  const name = getDisplayName(profile, user);
+  const username = profile?.username ?? getDefaultUsername(user);
   const email = userDoc?.email || user.email || "";
   const photoURL = userDoc?.photoURL || user.photoURL || "";
 
@@ -52,7 +53,11 @@ export function UserInfoCard({ linkCount }: { linkCount?: number }) {
         )}
         <div className="min-w-0 flex-1">
           <p className="text-[15px] font-bold text-[#141A24] truncate">{name}님의 MyLink</p>
-          <p className="text-xs text-[#697383] truncate">{email}</p>
+          <p className="text-xs text-[#697383] truncate">
+            <span className="text-[#0078FF] font-semibold">@{username}</span>
+            <span className="mx-1 text-[#CBD1DC]">·</span>
+            {email}
+          </p>
         </div>
         {typeof linkCount === "number" && (
           <div className="shrink-0 text-right">

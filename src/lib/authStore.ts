@@ -10,11 +10,17 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, onSnapshot, setDoc, Unsubscribe } from "firebase/firestore";
 import { auth, db } from "./firebase";
+import {
+  ensureProfile,
+  subscribeProfile,
+  isPermissionDenied,
+  usernameFromEmail,
+  UserProfileDoc,
+} from "./profile";
 
 /** Firestore users/{uid} 문서에 저장되는 사용자 정보 */
 export interface UserDoc {
   uid: string;
-  displayName: string;
   email: string;
   photoURL: string;
   createdAt: string;
@@ -29,6 +35,11 @@ interface AuthState {
   user: User | null;
   /** Firestore users/{uid} 문서 (화면 표시용) */
   userDoc: UserDoc | null;
+  /** Firestore users/{uid}/profile/main 프로필 (username, displayName, bio) */
+  profile: UserProfileDoc | null;
+  /** loading: 첫 응답 전 / ready: 수신 완료 / error: 생성·구독 실패 (보안 규칙 미적용 등) */
+  profileStatus: "loading" | "ready" | "error";
+  profileError: string | null;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   /** 앱 전체에서 1회만 호출: onAuthStateChanged 로그인 상태 감지 시작 */
@@ -38,12 +49,23 @@ interface AuthState {
 const userDocRef = (uid: string) => doc(db, "users", uid);
 
 /**
- * 표시용 이름: 이메일 앞부분(@ 앞)을 사용 (예: gildong@gmail.com → gildong)
- * 이메일이 없는 경우에만 Google 계정 이름 → '사용자' 순으로 대체
+ * 화면 표시 이름: 프로필 displayName → Google 계정 이름 → 이메일 앞부분 → '사용자'
  */
-export function getDisplayName(email?: string | null, fallbackName?: string | null): string {
-  const emailPrefix = email?.split("@")[0]?.trim();
-  return emailPrefix || fallbackName?.trim() || "사용자";
+export function getDisplayName(
+  profile: Pick<UserProfileDoc, "displayName"> | null | undefined,
+  user: Pick<User, "displayName" | "email"> | null | undefined
+): string {
+  return (
+    profile?.displayName?.trim() ||
+    user?.displayName?.trim() ||
+    user?.email?.split("@")[0]?.trim() ||
+    "사용자"
+  );
+}
+
+/** 프로필이 아직 없을 때 보여줄 기본 username (이메일 앞부분) */
+export function getDefaultUsername(user: Pick<User, "email"> | null | undefined): string {
+  return usernameFromEmail(user?.email);
 }
 
 /**
@@ -57,8 +79,7 @@ async function upsertUserDoc(user: User): Promise<void> {
     ref,
     {
       uid: user.uid,
-      // 표시 이름은 이메일 앞부분으로 저장 (로그인할 때마다 갱신)
-      displayName: getDisplayName(user.email, user.displayName),
+      // 표시 이름/username/소개글은 users/{uid}/profile/main 에서 관리
       email: user.email ?? "",
       photoURL: user.photoURL ?? "",
       lastLoginAt: now,
@@ -72,6 +93,9 @@ export const useAuthStore = create<AuthState>()((set) => ({
   status: "loading",
   user: null,
   userDoc: null,
+  profile: null,
+  profileStatus: "loading",
+  profileError: null,
 
   signInWithGoogle: async () => {
     const provider = new GoogleAuthProvider();
@@ -95,6 +119,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
 
   startAuthListener: () => {
     let unsubscribeUserDoc: Unsubscribe | null = null;
+    let unsubscribeProfile: Unsubscribe | null = null;
 
     // 리다이렉트 방식 로그인에서 돌아온 경우 결과 처리 (성공 시 onAuthStateChanged가 상태 반영)
     getRedirectResult(auth).catch((error) => {
@@ -104,13 +129,49 @@ export const useAuthStore = create<AuthState>()((set) => ({
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       unsubscribeUserDoc?.();
       unsubscribeUserDoc = null;
+      unsubscribeProfile?.();
+      unsubscribeProfile = null;
 
       if (!user) {
-        set({ status: "signedOut", user: null, userDoc: null });
+        set({
+          status: "signedOut",
+          user: null,
+          userDoc: null,
+          profile: null,
+          profileStatus: "loading",
+          profileError: null,
+        });
         return;
       }
 
-      set({ status: "signedIn", user, userDoc: null });
+      set({
+        status: "signedIn",
+        user,
+        userDoc: null,
+        profile: null,
+        profileStatus: "loading",
+        profileError: null,
+      });
+
+      // 프로필 자동 생성(최초 로그인) 후 실시간 구독
+      // username = 이메일 앞부분(중복 시 _2 등), displayName = Google 이름
+      ensureProfile(user).catch((error) => {
+        console.warn("프로필 자동 생성 실패:", (error as { code?: string })?.code ?? error);
+        set({
+          profileStatus: "error",
+          profileError: isPermissionDenied(error)
+            ? "Firestore 보안 규칙에서 usernames 컬렉션 접근이 허용되지 않아 프로필을 만들지 못했습니다."
+            : "프로필을 만드는 중 문제가 발생했습니다.",
+        });
+      });
+      unsubscribeProfile = subscribeProfile(
+        user.uid,
+        (profile) => {
+          // 문서가 아직 없으면(생성 중) 로딩 유지, 생성되면 ready
+          if (profile) set({ profile, profileStatus: "ready", profileError: null });
+        },
+        () => set({ profileStatus: "error", profileError: "프로필을 불러오지 못했습니다." })
+      );
 
       // users/{uid} 문서를 저장한 뒤 실시간 구독하여 화면에 표시
       upsertUserDoc(user).catch((error) =>
@@ -127,6 +188,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
 
     return () => {
       unsubscribeUserDoc?.();
+      unsubscribeProfile?.();
       unsubscribeAuth();
     };
   },
