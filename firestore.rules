@@ -6,42 +6,53 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isSignedIn() {
-      return request.auth != null;
+    // 로그인한 사용자의 uid가 경로의 userId와 같은지 (= 본인 데이터인지)
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
     }
 
-    function isOwner(uid) {
-      return isSignedIn() && request.auth.uid == uid;
+    // ─────────────────────────────────────────────────────────────
+    // 링크: users/{userId}/links/{linkId}
+    //  - 읽기: 누구나 (로그인 불필요)
+    //  - 쓰기(생성/수정/삭제): 로그인 필수 + 본인(userId 일치)만
+    // ─────────────────────────────────────────────────────────────
+    match /users/{userId}/links/{linkId} {
+      allow read: if true;
+      allow write: if isOwner(userId);
     }
+
+    // ─────────────────────────────────────────────────────────────
+    // 프로필: users/{userId}/profile/{docId}  (실제 문서: users/{userId}/profile/main)
+    //  - 읽기: 누구나 (로그인 불필요)
+    //  - 쓰기(생성/수정/삭제): 로그인 필수 + 본인(userId 일치)만
+    // ─────────────────────────────────────────────────────────────
+    match /users/{userId}/profile/{docId} {
+      allow read: if true;
+      allow write: if isOwner(userId);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // (앱 동작에 필요한 기존 규칙 유지)
+    // ─────────────────────────────────────────────────────────────
 
     // 계정 정보(이메일, 사진, 가입일 등): 본인만 읽기/쓰기
-    match /users/{uid} {
-      allow read, write: if isOwner(uid);
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
     }
 
-    // 프로필(username, displayName, bio): 공개 페이지(/[username])용으로 누구나 읽기, 본인만 쓰기
-    match /users/{uid}/profile/{docId} {
-      allow read: if true;
-      allow write: if isOwner(uid);
-    }
-
-    // 링크: 본인은 전체, 방문자는 공개 링크(isActive == true)만 읽기 / 쓰기는 본인만
-    match /users/{uid}/links/{linkId} {
-      allow read: if isOwner(uid) || resource.data.isActive == true;
-      allow write: if isOwner(uid);
-    }
-
-    // username → uid 인덱스: 공개 페이지 조회를 위해 단건 조회만 허용(목록 조회 불가)
+    // username → uid 인덱스 (username 중복 체크, /[username] 공개 페이지 조회용)
+    //  - 단건 조회(get)만 공개, 목록 조회 금지
+    //  - 생성: 본인 uid로만, 형식(a-z0-9_ 3~20자) 준수, 예약어 금지 / 삭제: 소유자만 / 수정 금지
     match /usernames/{username} {
       allow get: if true;
       allow list: if false;
-      allow create: if isSignedIn()
+      allow create: if request.auth != null
         && request.resource.data.uid == request.auth.uid
         && username.matches('^[a-z0-9_]{3,20}$')
         && !(username in ['mypage', 'api', 'admin', 'login', 'logout', 'signin', 'signup',
                           'settings', 'profile', 'user', 'users', 'links', 'mylink', 'about',
                           'help', 'support', 'static', 'public', 'assets', 'null', 'undefined']);
-      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
       allow update: if false;
     }
   }
