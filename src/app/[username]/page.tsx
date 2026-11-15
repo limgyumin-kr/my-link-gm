@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ExternalLink } from "lucide-react";
 import { getPublicPage } from "@/lib/publicProfile";
 import { CategoryIcon } from "@/components/icons";
+import { TrackedLink } from "@/components/TrackedLink";
 
 /**
  * 공개 링크 페이지: /{username}
@@ -32,7 +33,7 @@ export default async function PublicProfilePage({ params }: PageProps<"/[usernam
   // 5. 찾지 못하면 404
   if (!page) notFound();
 
-  const { profile, links } = page;
+  const { uid, profile, links } = page;
 
   // 4. 프로필 카드 + 링크 리스트
   return (
@@ -65,11 +66,11 @@ export default async function PublicProfilePage({ params }: PageProps<"/[usernam
             </div>
           ) : (
             links.map((link) => (
-              <a
+              <TrackedLink
                 key={link.id}
+                ownerUid={uid}
+                linkId={link.id}
                 href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
                 className={`group w-full min-h-14 rounded-[14px] border px-4 py-3 flex items-center gap-3 shadow-xs transition socar-press active:scale-[0.98] ${
                   link.isFeatured
                     ? "bg-[#0078FF] border-[#0078FF] text-white hover:bg-[#0066DB]"
@@ -101,7 +102,7 @@ export default async function PublicProfilePage({ params }: PageProps<"/[usernam
                     link.isFeatured ? "text-white/80" : "text-[#99A1B1] group-hover:text-[#0078FF]"
                   }`}
                 />
-              </a>
+              </TrackedLink>
             ))
           )}
         </section>

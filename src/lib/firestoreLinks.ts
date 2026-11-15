@@ -5,6 +5,7 @@ import {
   setDoc,
   deleteDoc,
   updateDoc,
+  increment,
   query,
   orderBy,
   onSnapshot,
@@ -124,6 +125,15 @@ export async function updateLinkInFirestore(
  */
 export async function deleteLinkFromFirestore(uid: string, id: string): Promise<void> {
   await deleteDoc(getLinkDocRef(uid, id));
+}
+
+/**
+ * 공개 페이지에서 링크 클릭 시 클릭 수 +1 (로그인하지 않은 방문자도 가능)
+ * - 서버에서 원자적으로 더하는 increment(1) 사용 → 동시에 여러 명이 눌러도 누락 없음
+ * - 보안 규칙상 clickCount 외의 필드(updatedAt 등)를 함께 바꾸면 거부되므로 clickCount만 갱신
+ */
+export async function incrementLinkClick(uid: string, linkId: string): Promise<void> {
+  await updateDoc(getLinkDocRef(uid, linkId), { clickCount: increment(1) });
 }
 
 /**

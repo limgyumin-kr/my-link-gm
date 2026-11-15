@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { MousePointerClick, Pencil, Trash2 } from "lucide-react";
 import { LinkItem } from "@/types/link";
 import { Switch } from "@/components/ui/switch";
 import { CategoryIcon } from "@/components/icons";
@@ -16,7 +16,8 @@ interface LinkRowProps {
 
 /**
  * 링크 관리 목록의 한 줄
- * - 제목(누르면 새 탭으로 링크 열기), 도메인, 카테고리, 조회수, 대표/비공개 배지
+ * - 제목(누르면 새 탭으로 링크 열기), 클릭 수, 카테고리, 도메인, 대표/비공개 배지
+ * - 클릭 수는 공개 페이지(/username) 방문자의 클릭만 집계 (실시간으로 갱신)
  * - 오른쪽: 공개 스위치, 수정, 삭제
  */
 export function LinkRow({ link, onEdit, onDelete, onToggleActive }: LinkRowProps) {
@@ -59,12 +60,20 @@ export function LinkRow({ link, onEdit, onDelete, onToggleActive }: LinkRowProps
             </span>
           )}
         </div>
-        <p className="mt-0.5 text-xs text-[#99A1B1] truncate">
-          <span>{CATEGORY_LABELS[link.category] ?? link.category}</span>
-          <span className="mx-1">·</span>
-          <span>{domain}</span>
-          <span className="mx-1">·</span>
-          <span>조회 {link.clickCount || 0}</span>
+        <p className="mt-1 flex items-center gap-1.5 min-w-0 text-xs text-[#99A1B1]">
+          <span
+            className="shrink-0 inline-flex items-center gap-0.5 rounded-full bg-[#F2F3F8] px-1.5 py-px font-semibold text-[#354153] tabular-nums"
+            title={`클릭 ${(link.clickCount || 0).toLocaleString()}회`}
+            aria-label={`클릭 ${link.clickCount || 0}회`}
+          >
+            <MousePointerClick className="w-3 h-3 text-[#0078FF]" aria-hidden="true" />
+            {(link.clickCount || 0).toLocaleString()}
+          </span>
+          <span className="truncate">
+            {CATEGORY_LABELS[link.category] ?? link.category}
+            <span className="mx-1">·</span>
+            {domain}
+          </span>
         </p>
       </div>
 

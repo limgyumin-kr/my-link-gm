@@ -12,7 +12,7 @@ import { getPublicUrl, getPublicUrlLabel } from "@/lib/publicUrl";
  * 링크 관리 화면 상단 "내 페이지" 요약 카드
  * - 프로필(이름, @username, 소개글)
  * - 공개 페이지 주소 복사 / 새 탭으로 열기
- * - 링크 통계 (전체 / 공개 / 총 조회)
+ * - 링크 통계 (전체 / 공개 / 총 클릭 - 공개 페이지 방문자의 링크 클릭 합계)
  */
 export function MyPageCard() {
   const user = useAuthStore((s) => s.user);
@@ -30,7 +30,7 @@ export function MyPageCard() {
   const stats = [
     { label: "전체 링크", value: links.length },
     { label: "공개 중", value: links.filter((l) => l.isActive).length },
-    { label: "총 조회", value: links.reduce((sum, l) => sum + (l.clickCount || 0), 0) },
+    { label: "총 클릭", value: links.reduce((sum, l) => sum + (l.clickCount || 0), 0) },
   ];
 
   const handleCopy = async () => {
@@ -103,7 +103,7 @@ export function MyPageCard() {
         {stats.map((s) => (
           <div key={s.label} className="flex flex-col items-center gap-0.5">
             <dt className="text-[11px] text-[#99A1B1]">{s.label}</dt>
-            <dd className="text-lg font-bold text-[#141A24] tabular-nums">{ready ? s.value : "-"}</dd>
+            <dd className="text-lg font-bold text-[#141A24] tabular-nums">{ready ? s.value.toLocaleString() : "-"}</dd>
           </div>
         ))}
       </dl>
