@@ -93,13 +93,18 @@ function ProfileEditForm({
   const isSaving = saveProfile.isPending;
   const [values, setValues] = useState<ProfileInput>(initial);
   const [errors, setErrors] = useState<FieldErrors>({});
+  // 마지막으로 저장을 시도한 값. 저장이 실패해 캐시가 되돌아가도 이 입력값은 덮어쓰지 않는다.
+  // (TanStack Query는 캐시 변경 알림을 묶어서 비동기로 전달하므로, "저장 중" 플래그만으로는
+  //  되돌림이 반영되는 렌더 시점을 보장할 수 없어 '시도한 값'을 기준으로 판단한다)
+  const [lastSubmitted, setLastSubmitted] = useState<ProfileInput | null>(null);
 
-  // 저장된 값(initial)이 바뀌었을 때(낙관적 저장, 실패 후 되돌림, 다른 탭에서 수정 등)
-  // 사용자가 고치고 있지 않았다면 새 값으로 맞추고, 고치는 중이면 입력값을 유지한다.
+  // 저장된 값(initial)이 바뀌었을 때(다른 탭에서 수정 등) 사용자가 고치고 있지 않았다면 새 값으로 맞추고,
+  // 고치는 중이거나 방금 저장을 시도한 값이면 입력값을 유지한다.
   const [prevInitial, setPrevInitial] = useState<ProfileInput>(initial);
   if (!sameInput(prevInitial, initial)) {
     setPrevInitial(initial);
-    if (sameInput(values, prevInitial)) setValues(initial);
+    const isAttemptedValue = lastSubmitted !== null && sameInput(values, lastSubmitted);
+    if (!isAttemptedValue && sameInput(values, prevInitial)) setValues(initial);
   }
 
   const isDirty =
@@ -110,6 +115,7 @@ function ProfileEditForm({
 
   const update = (field: keyof ProfileInput, value: string) => {
     setValues((prev) => ({ ...prev, [field]: value }));
+    setLastSubmitted(null);
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
@@ -125,9 +131,12 @@ function ProfileEditForm({
       return;
     }
 
+    setLastSubmitted(values);
     try {
       // 낙관적 업데이트: 호출 즉시 캐시가 새 값으로 바뀌고, 실패하면 mutation이 되돌린다
       await saveProfile.mutateAsync(values);
+      // 성공: 이후 다른 탭에서 바뀐 값은 다시 폼에 반영되도록 기억 해제
+      setLastSubmitted(null);
       toast.success("프로필이 저장되었습니다.", { description: `@${values.username.trim()}` });
     } catch (error) {
       if (error instanceof UsernameTakenError) {
@@ -164,6 +173,7 @@ function ProfileEditForm({
               type="button"
               onClick={() => {
                 setValues(initial);
+                setLastSubmitted(null);
                 setErrors({});
               }}
               disabled={isSaving}
