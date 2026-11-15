@@ -29,6 +29,26 @@ export const DISPLAY_NAME_MAX = 30;
 export const BIO_MAX = 160;
 const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
 
+/**
+ * 사용할 수 없는 username (앱의 고정 경로와 겹치거나 오해의 소지가 있는 이름)
+ * /mypage, /api 같은 고정 경로가 /[username] 보다 우선하므로 이 이름들은 공유 페이지로 열 수 없다.
+ * ※ Firestore 보안 규칙의 usernames 생성 조건에도 같은 목록이 들어 있다.
+ */
+export const RESERVED_USERNAMES = [
+  "mypage", "api", "admin", "login", "logout", "signin", "signup", "settings",
+  "profile", "user", "users", "links", "mylink", "about", "help", "support",
+  "static", "public", "assets", "null", "undefined",
+] as const;
+
+export function isReservedUsername(username: string): boolean {
+  return (RESERVED_USERNAMES as readonly string[]).includes(username);
+}
+
+/** 형식(3~20자 a-z0-9_) + 예약어가 아닌지 */
+export function isUsernameFormatValid(username: string): boolean {
+  return USERNAME_PATTERN.test(username) && !isReservedUsername(username);
+}
+
 /** 프로필 문서: users/{uid}/profile/main (문서 경로는 짝수 세그먼트여야 하므로 main 문서 1개 사용) */
 export const profileDocRef = (uid: string) => doc(db, "users", uid, "profile", "main");
 
@@ -51,6 +71,9 @@ export function validateUsername(username: string): string | null {
   }
   if (!USERNAME_PATTERN.test(username)) {
     return "영문 소문자, 숫자, 밑줄(_)만 사용할 수 있습니다.";
+  }
+  if (isReservedUsername(username)) {
+    return "시스템에서 사용하는 이름이라 쓸 수 없습니다. 다른 이름을 입력해주세요.";
   }
   return null;
 }
@@ -88,7 +111,8 @@ function usernameCandidates(base: string): string[] {
   const list = [base];
   for (let i = 2; i <= 9; i++) list.push(`${base.slice(0, USERNAME_MAX - 2)}_${i}`);
   list.push(`${base.slice(0, USERNAME_MAX - 5)}_${Math.random().toString(36).slice(2, 6)}`);
-  return list;
+  // 예약어(예: 이메일이 admin@... 인 경우)는 후보에서 제외 → admin_2 부터 사용
+  return list.filter((name) => !isReservedUsername(name));
 }
 
 /**
