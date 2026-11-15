@@ -2,8 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { useAuthStore } from "@/lib/authStore";
-import { getDisplayName } from "@/components/AuthButton";
+import { useAuthStore, getDisplayName } from "@/lib/authStore";
 
 function formatDateTime(iso?: string): string {
   if (!iso) return "-";
@@ -28,7 +27,8 @@ export function UserInfoCard({ linkCount }: { linkCount?: number }) {
   if (!user) return null;
 
   // Firestore 문서가 아직 도착하지 않았다면 Auth 정보로 먼저 표시
-  const name = getDisplayName(userDoc?.displayName ?? user.displayName, userDoc?.email ?? user.email);
+  // 표시 이름은 이메일 앞부분 기준 (저장된 문서보다 현재 로그인 정보의 이메일을 우선)
+  const name = getDisplayName(user.email ?? userDoc?.email, user.displayName);
   const email = userDoc?.email || user.email || "";
   const photoURL = userDoc?.photoURL || user.photoURL || "";
 

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { LogOut, Loader2 } from "lucide-react";
-import { useAuthStore, getAuthErrorMessage } from "@/lib/authStore";
+import { useAuthStore, getAuthErrorMessage, getDisplayName } from "@/lib/authStore";
 
 /** Google 'G' 로고 (로그인 버튼용) */
 export function GoogleLogo({ className = "w-4 h-4" }: { className?: string }) {
@@ -15,11 +15,6 @@ export function GoogleLogo({ className = "w-4 h-4" }: { className?: string }) {
       <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z" />
     </svg>
   );
-}
-
-/** 표시용 이름: displayName → 이메일 앞부분 → '사용자' */
-export function getDisplayName(displayName?: string | null, email?: string | null): string {
-  return displayName?.trim() || email?.split("@")[0] || "사용자";
 }
 
 interface AuthButtonProps {
@@ -90,7 +85,7 @@ export function AuthButton({ onToast, size = "sm" }: AuthButtonProps) {
     );
   }
 
-  const name = getDisplayName(user.displayName, user.email);
+  const name = getDisplayName(user.email, user.displayName);
 
   return (
     <div className="flex items-center gap-1.5 min-w-0">
@@ -106,18 +101,22 @@ export function AuthButton({ onToast, size = "sm" }: AuthButtonProps) {
             className="w-6 h-6 rounded-full border border-[#E5E8EF] shrink-0 hidden sm:block"
           />
         ) : null}
-        <span className="text-[12px] font-semibold text-[#141A24] truncate max-w-[88px] sm:max-w-[140px]">
-          {name}님
+        {/* 이름이 길면 이름만 말줄임하고 '님'은 항상 표시 */}
+        <span className="flex items-baseline min-w-0 text-[12px] font-semibold text-[#141A24]">
+          <span className="truncate max-w-[110px] sm:max-w-[160px]">{name}</span>
+          <span className="shrink-0">님</span>
         </span>
       </div>
       <button
         type="button"
         onClick={handleSignOut}
         disabled={isPending}
+        aria-label="로그아웃"
+        title="로그아웃"
         className="h-8 px-2.5 rounded-[8px] bg-white border border-[#E5E8EF] text-[#697383] hover:text-[#FF3A5B] hover:border-[#FFD1DA] hover:bg-[#FFF0F3] text-[12px] font-semibold flex items-center gap-1 transition socar-press active:scale-[0.96] disabled:opacity-60 cursor-pointer whitespace-nowrap"
       >
         <LogOut className="w-3.5 h-3.5" />
-        <span>로그아웃</span>
+        <span className="hidden sm:inline">로그아웃</span>
       </button>
     </div>
   );

@@ -38,6 +38,15 @@ interface AuthState {
 const userDocRef = (uid: string) => doc(db, "users", uid);
 
 /**
+ * 표시용 이름: 이메일 앞부분(@ 앞)을 사용 (예: gildong@gmail.com → gildong)
+ * 이메일이 없는 경우에만 Google 계정 이름 → '사용자' 순으로 대체
+ */
+export function getDisplayName(email?: string | null, fallbackName?: string | null): string {
+  const emailPrefix = email?.split("@")[0]?.trim();
+  return emailPrefix || fallbackName?.trim() || "사용자";
+}
+
+/**
  * 로그인 시 users/{uid} 문서를 생성/갱신 (최초 로그인 시에만 createdAt 기록)
  */
 async function upsertUserDoc(user: User): Promise<void> {
@@ -48,7 +57,8 @@ async function upsertUserDoc(user: User): Promise<void> {
     ref,
     {
       uid: user.uid,
-      displayName: user.displayName ?? "",
+      // 표시 이름은 이메일 앞부분으로 저장 (로그인할 때마다 갱신)
+      displayName: getDisplayName(user.email, user.displayName),
       email: user.email ?? "",
       photoURL: user.photoURL ?? "",
       lastLoginAt: now,
