@@ -3,7 +3,13 @@
 import React, { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Plus, Link2 } from "lucide-react";
-import { useLinkStore } from "@/lib/store";
+import {
+  useLinksQuery,
+  useAddLinkMutation,
+  useUpdateLinkMutation,
+  useToggleLinkMutation,
+  useDeleteLinkMutation,
+} from "@/lib/queries";
 import { LinkItem, LinkCategory } from "@/types/link";
 import { MyPageCard } from "@/components/MyPageCard";
 import { LinkRow } from "@/components/LinkRow";
@@ -25,16 +31,21 @@ type LinkFormData = {
  * 로그인 상태의 메인 페이지: 링크 관리
  * - 상단: 내 페이지 요약(공유 주소, 통계)
  * - 하단: 카테고리 필터 + 링크 목록(공개 스위치, 수정, 삭제) + 링크 추가
+ *
+ * 데이터: TanStack Query (users/{uid}/links)
+ * 추가/수정/삭제/공개 전환은 낙관적 업데이트 → 화면을 먼저 바꾸고 실패하면 되돌림
  */
 export function LinkDashboard() {
-  const links = useLinkStore((s) => s.links);
-  const linksStatus = useLinkStore((s) => s.linksStatus);
-  const selectedCategory = useLinkStore((s) => s.selectedCategory);
-  const setSelectedCategory = useLinkStore((s) => s.setSelectedCategory);
-  const addLink = useLinkStore((s) => s.addLink);
-  const updateLink = useLinkStore((s) => s.updateLink);
-  const deleteLink = useLinkStore((s) => s.deleteLink);
-  const toggleLinkActive = useLinkStore((s) => s.toggleLinkActive);
+  const linksQuery = useLinksQuery();
+  const links = useMemo(() => linksQuery.data ?? [], [linksQuery.data]);
+  const linksStatus = linksQuery.isSuccess ? "ready" : linksQuery.isError ? "error" : "loading";
+
+  const { addLink } = useAddLinkMutation();
+  const updateLink = useUpdateLinkMutation();
+  const toggleLink = useToggleLinkMutation();
+  const deleteLink = useDeleteLinkMutation();
+
+  const [selectedCategory, setSelectedCategory] = useState("ALL");
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<LinkItem | null>(null);
@@ -60,46 +71,54 @@ export function LinkDashboard() {
     [links, selectedCategory]
   );
 
-  const handleSave = async (data: LinkFormData) => {
-    try {
-      if (editingLink) {
-        await updateLink(editingLink.id, data);
-        toast.success("링크가 수정되었습니다.", { description: data.title });
-        setEditingLink(null);
-      } else {
-        await addLink(data);
-        toast.success("새 링크가 저장되었습니다.", { description: data.title });
-        setIsAddOpen(false);
-      }
-    } catch (error) {
-      console.error("링크 저장 오류:", error);
-      toast.error("링크 저장 중 오류가 발생했습니다.");
-      throw error;
+  // 낙관적 업데이트: 목록에 바로 반영되므로 모달은 서버 응답을 기다리지 않고 닫는다.
+  // 실패하면 mutation이 목록을 되돌리고, 여기서 에러 토스트를 띄운다.
+  const handleSave = (data: LinkFormData) => {
+    if (editingLink) {
+      const target = editingLink;
+      setEditingLink(null);
+      updateLink
+        .mutateAsync({ id: target.id, updates: data })
+        .then(() => toast.success("링크가 수정되었습니다.", { description: data.title }))
+        .catch((error) => {
+          console.error("링크 수정 오류:", error);
+          toast.error("링크를 수정하지 못해 이전 내용으로 되돌렸습니다.", { description: target.title });
+        });
+    } else {
+      setIsAddOpen(false);
+      addLink(data)
+        .then(() => toast.success("새 링크가 저장되었습니다.", { description: data.title }))
+        .catch((error) => {
+          console.error("링크 추가 오류:", error);
+          toast.error("링크를 저장하지 못해 목록에서 제거했습니다.", { description: data.title });
+        });
     }
   };
 
-  const handleToggle = async (link: LinkItem) => {
-    try {
-      await toggleLinkActive(link.id);
-      toast.success(link.isActive ? "비공개로 전환했습니다." : "공개로 전환했습니다.", {
-        description: link.title,
-      });
-    } catch {
-      toast.error("공개 설정을 바꾸지 못했습니다.", { description: link.title });
-    }
+  const handleToggle = (link: LinkItem) => {
+    toggleLink
+      .mutateAsync({ id: link.id, isActive: !link.isActive })
+      .then(() =>
+        toast.success(link.isActive ? "비공개로 전환했습니다." : "공개로 전환했습니다.", {
+          description: link.title,
+        })
+      )
+      .catch(() =>
+        toast.error("공개 설정을 바꾸지 못해 원래대로 되돌렸습니다.", { description: link.title })
+      );
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = () => {
     if (!deletingLink) return;
-    try {
-      await deleteLink(deletingLink.id);
-      toast.success("링크가 삭제되었습니다.", { description: deletingLink.title });
-      setDeletingLink(null);
-    } catch (error) {
-      console.error("링크 삭제 오류:", error);
-      toast.error("링크 삭제 중 오류가 발생했습니다.");
-      throw error;
-    }
+    const target = deletingLink;
+    setDeletingLink(null);
+    deleteLink
+      .mutateAsync({ id: target.id })
+      .then(() => toast.success("링크가 삭제되었습니다.", { description: target.title }))
+      .catch((error) => {
+        console.error("링크 삭제 오류:", error);
+        toast.error("링크를 삭제하지 못해 목록에 되돌렸습니다.", { description: target.title });
+      });
   };
 
   return (

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { toast } from "sonner";
 import { Loader2, LogOut } from "lucide-react";
 import { useAuthStore, getDisplayName } from "@/lib/authStore";
+import { useProfileQuery } from "@/lib/queries";
 
 function formatDateTime(iso?: string): string {
   if (!iso) return "-";
@@ -26,7 +27,7 @@ function formatDateTime(iso?: string): string {
 export function AccountCard() {
   const user = useAuthStore((s) => s.user);
   const userDoc = useAuthStore((s) => s.userDoc);
-  const profile = useAuthStore((s) => s.profile);
+  const { data: profile } = useProfileQuery();
   const signOut = useAuthStore((s) => s.signOut);
   const [isSigningOut, setIsSigningOut] = useState(false);
 

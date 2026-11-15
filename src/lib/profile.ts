@@ -1,5 +1,6 @@
 import {
   doc,
+  getDoc,
   onSnapshot,
   runTransaction,
   Unsubscribe,
@@ -193,6 +194,12 @@ export async function saveProfile(uid: string, input: ProfileInput): Promise<voi
       { merge: true }
     );
   });
+}
+
+/** 프로필 1회 조회 (TanStack Query queryFn) */
+export async function getProfile(uid: string): Promise<UserProfileDoc | null> {
+  const snap = await getDoc(profileDocRef(uid));
+  return snap.exists() ? (snap.data() as UserProfileDoc) : null;
 }
 
 /** 프로필 문서 실시간 구독 */

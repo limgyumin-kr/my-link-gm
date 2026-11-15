@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthSync } from "@/components/AuthSync";
+import { QueryProvider } from "@/components/QueryProvider";
 import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
@@ -26,8 +27,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AuthSync />
-        {children}
+        {/* TanStack Query (프로필/링크 캐시) */}
+        <QueryProvider>
+          <AuthSync />
+          {children}
+        </QueryProvider>
         {/* 전역 토스트 (sonner, 중앙 상단) */}
         <Toaster />
       </body>

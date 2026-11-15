@@ -47,19 +47,19 @@ function docToLink(id: string, data: DocumentData): LinkItem {
   });
 }
 
+export type NewLinkInput = Omit<LinkItem, "id" | "createdAt" | "updatedAt" | "clickCount" | "order">;
+
 /**
- * Firestore users/{uid}/links 경로에 새 링크 저장
+ * 새 링크 초안 생성 (Firestore 문서 id를 클라이언트에서 미리 발급)
+ * 낙관적 업데이트로 화면에 먼저 넣은 항목과 실제 저장 문서의 id가 같아서
+ * 실시간 구독 데이터로 교체될 때 깜빡이지 않는다.
  */
-export async function addLinkToFirestore(
-  uid: string,
-  newLinkData: Omit<LinkItem, "id" | "createdAt" | "updatedAt" | "clickCount" | "order">,
-  order: number = 0
-): Promise<LinkItem> {
+export function createLinkDraft(uid: string, newLinkData: NewLinkInput, order: number = 0): LinkItem {
   const newDocRef = doc(getLinksCollectionRef(uid));
   const now = new Date().toISOString();
 
   // Firestore는 undefined 필드가 포함되면 에러를 던지므로 명시적 안전값 지정
-  const newLink: LinkItem = {
+  return {
     id: newDocRef.id,
     title: newLinkData.title.trim(),
     description: newLinkData.description?.trim() || "",
@@ -73,9 +73,13 @@ export async function addLinkToFirestore(
     createdAt: now,
     updatedAt: now,
   };
+}
 
-  await setDoc(newDocRef, newLink);
-  return newLink;
+/**
+ * Firestore users/{uid}/links/{link.id} 에 새 링크 저장
+ */
+export async function saveNewLink(uid: string, link: LinkItem): Promise<void> {
+  await setDoc(getLinkDocRef(uid, link.id), link);
 }
 
 /**

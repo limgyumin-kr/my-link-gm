@@ -4,9 +4,9 @@ import React, { useState } from "react";
 import { toast } from "sonner";
 import { AlertCircle, Check, Loader2, RotateCcw, UserPen } from "lucide-react";
 import { useAuthStore, getDefaultUsername } from "@/lib/authStore";
+import { useProfileQuery, useSaveProfileMutation } from "@/lib/queries";
 import { getPublicUrlLabel } from "@/lib/publicUrl";
 import {
-  saveProfile,
   validateUsername,
   validateDisplayName,
   validateBio,
@@ -20,20 +20,37 @@ import {
 
 type FieldErrors = Partial<Record<keyof ProfileInput, string>>;
 
+/** 공백을 정리한 값끼리 같은지 */
+function sameInput(a: ProfileInput, b: ProfileInput): boolean {
+  return (
+    a.username.trim() === b.username.trim() &&
+    a.displayName.trim() === b.displayName.trim() &&
+    a.bio.trim() === b.bio.trim()
+  );
+}
+
 /**
- * 마이페이지 상단 프로필 수정 영역
- * - 현재 저장된 값(users/{uid}/profile/main)을 입력란에 채워서 보여주고 수정 후 저장
- * - 저장 시 username 중복 체크 (중복이면 입력란 아래에 에러 표시)
+ * 프로필 페이지의 공개 프로필 수정 영역
+ * - 현재 저장된 값(users/{uid}/profile/main, TanStack Query 캐시)을 입력란에 채워서 보여주고 수정 후 저장
+ * - 저장은 낙관적 업데이트: 헤더/메뉴/내 페이지 카드의 이름이 즉시 바뀌고, 실패하면 되돌림
+ * - username 중복이면 이전 값으로 되돌리고 입력란 아래에 에러 표시 (입력한 값은 유지)
  */
 export function ProfileEditCard() {
   const user = useAuthStore((s) => s.user);
-  const profile = useAuthStore((s) => s.profile);
-  const profileStatus = useAuthStore((s) => s.profileStatus);
-  const profileError = useAuthStore((s) => s.profileError);
+  const profileSetupError = useAuthStore((s) => s.profileSetupError);
+  const profileQuery = useProfileQuery();
+  const profile = profileQuery.data ?? null;
 
   if (!user) return null;
 
-  if (profileStatus === "loading") {
+  const loadError = profileQuery.isError
+    ? "프로필을 불러오지 못했습니다."
+    : !profile
+      ? profileSetupError
+      : null;
+
+  // 첫 조회 중이거나, 최초 로그인 직후 프로필이 자동 생성되기를 기다리는 중
+  if (profileQuery.isPending || (!profile && !loadError)) {
     return (
       <section className="rounded-[20px] bg-white border border-[#E5E8EF] p-5 sm:p-6 flex flex-col gap-3">
         <div className="h-5 w-28 rounded bg-[#F2F3F8] animate-pulse" />
@@ -53,32 +70,37 @@ export function ProfileEditCard() {
         bio: "",
       };
 
-  // 저장된 값이 바뀌면(다른 탭에서 수정 등) key가 바뀌어 폼이 새 값으로 초기화됨
   return (
     <ProfileEditForm
-      key={profile?.updatedAt ?? "new"}
-      uid={user.uid}
+      key={profile ? "saved" : "new"}
       initial={initial}
       isSaved={Boolean(profile)}
-      loadError={profileStatus === "error" ? profileError : null}
+      loadError={loadError}
     />
   );
 }
 
 function ProfileEditForm({
-  uid,
   initial,
   isSaved,
   loadError,
 }: {
-  uid: string;
   initial: ProfileInput;
   isSaved: boolean;
   loadError: string | null;
 }) {
+  const saveProfile = useSaveProfileMutation();
+  const isSaving = saveProfile.isPending;
   const [values, setValues] = useState<ProfileInput>(initial);
   const [errors, setErrors] = useState<FieldErrors>({});
-  const [isSaving, setIsSaving] = useState(false);
+
+  // 저장된 값(initial)이 바뀌었을 때(낙관적 저장, 실패 후 되돌림, 다른 탭에서 수정 등)
+  // 사용자가 고치고 있지 않았다면 새 값으로 맞추고, 고치는 중이면 입력값을 유지한다.
+  const [prevInitial, setPrevInitial] = useState<ProfileInput>(initial);
+  if (!sameInput(prevInitial, initial)) {
+    setPrevInitial(initial);
+    if (sameInput(values, prevInitial)) setValues(initial);
+  }
 
   const isDirty =
     !isSaved ||
@@ -103,11 +125,10 @@ function ProfileEditForm({
       return;
     }
 
-    setIsSaving(true);
     try {
-      await saveProfile(uid, values);
-      toast.success("프로필이 저장되었습니다.", { description: `@${values.username}` });
-      // 저장 성공 시 구독으로 새 값이 들어오며 폼이 다시 초기화됨
+      // 낙관적 업데이트: 호출 즉시 캐시가 새 값으로 바뀌고, 실패하면 mutation이 되돌린다
+      await saveProfile.mutateAsync(values);
+      toast.success("프로필이 저장되었습니다.", { description: `@${values.username.trim()}` });
     } catch (error) {
       if (error instanceof UsernameTakenError) {
         setErrors({ username: "이미 사용 중인 username입니다. 다른 이름을 입력해주세요." });
@@ -120,8 +141,6 @@ function ProfileEditForm({
         console.error("프로필 저장 실패:", error);
         toast.error("프로필 저장 중 문제가 발생했습니다.");
       }
-    } finally {
-      setIsSaving(false);
     }
   };
 

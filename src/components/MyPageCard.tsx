@@ -5,7 +5,7 @@ import Image from "next/image";
 import { toast } from "sonner";
 import { Check, Copy, ExternalLink } from "lucide-react";
 import { useAuthStore, getDisplayName, getDefaultUsername } from "@/lib/authStore";
-import { useLinkStore } from "@/lib/store";
+import { useProfileQuery, useLinksQuery } from "@/lib/queries";
 import { getPublicUrl, getPublicUrlLabel } from "@/lib/publicUrl";
 
 /**
@@ -16,9 +16,10 @@ import { getPublicUrl, getPublicUrlLabel } from "@/lib/publicUrl";
  */
 export function MyPageCard() {
   const user = useAuthStore((s) => s.user);
-  const profile = useAuthStore((s) => s.profile);
-  const links = useLinkStore((s) => s.links);
-  const linksStatus = useLinkStore((s) => s.linksStatus);
+  const { data: profile } = useProfileQuery();
+  const linksQuery = useLinksQuery();
+  const links = linksQuery.data ?? [];
+  const linksStatus = linksQuery.isSuccess ? "ready" : linksQuery.isError ? "error" : "loading";
   const [copied, setCopied] = useState(false);
 
   if (!user) return null;

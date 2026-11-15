@@ -15,7 +15,7 @@ import {
 import { User } from "firebase/auth";
 import { toast } from "sonner";
 import { useAuthStore, getDisplayName, getDefaultUsername } from "@/lib/authStore";
-import { useLinkStore } from "@/lib/store";
+import { useProfileQuery, useLinksQuery } from "@/lib/queries";
 import { getPublicUrl } from "@/lib/publicUrl";
 import {
   DropdownMenu,
@@ -70,9 +70,10 @@ export function ProfileMenu({ user }: { user: User }) {
   const router = useRouter();
   const pathname = usePathname();
   const signOut = useAuthStore((s) => s.signOut);
-  const profile = useAuthStore((s) => s.profile);
-  const links = useLinkStore((s) => s.links);
-  const linksStatus = useLinkStore((s) => s.linksStatus);
+  const { data: profile } = useProfileQuery();
+  const linksQuery = useLinksQuery();
+  const links = linksQuery.data ?? [];
+  const linksStatus = linksQuery.isSuccess ? "ready" : linksQuery.isError ? "error" : "loading";
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const name = getDisplayName(profile, user);
