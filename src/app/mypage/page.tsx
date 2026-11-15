@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useLinkStore } from "@/lib/store";
 import { useIsClient } from "@/lib/useIsClient";
+import { toast } from "sonner";
 import { useAuthStore } from "@/lib/authStore";
 import { AuthButton } from "@/components/AuthButton";
 import { UserInfoCard } from "@/components/UserInfoCard";
@@ -37,7 +38,6 @@ export default function MyPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingLink, setDeletingLink] = useState<LinkItem | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [copiedEmail, setCopiedEmail] = useState(false);
 
   const email = "limgyumin22@naver.com";
@@ -45,22 +45,15 @@ export default function MyPage() {
   const instagramId = "@lnstargramn";
   const instagramUrl = "https://instagram.com/lnstargramn";
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 3000);
-  };
-
   // 이메일 복사 핸들러
   const handleCopyEmail = async () => {
     try {
       await navigator.clipboard.writeText(email);
       setCopiedEmail(true);
-      showToast("이메일 주소가 클립보드에 복사되었습니다.");
+      toast.success("이메일 주소가 클립보드에 복사되었습니다.", { description: email });
       setTimeout(() => setCopiedEmail(false), 2000);
     } catch {
-      showToast(email);
+      toast.error("클립보드 복사에 실패했습니다.", { description: email });
     }
   };
 
@@ -77,10 +70,10 @@ export default function MyPage() {
     try {
       await addLink(data);
       setIsDialogOpen(false);
-      showToast(`'${data.title}' 링크가 Firestore에 추가되었습니다.`);
+      toast.success("새 링크가 저장되었습니다.", { description: data.title });
     } catch (error) {
       console.error("링크 추가 오류:", error);
-      showToast("링크 추가 중 문제가 발생했습니다.");
+      toast.error("링크 추가 중 문제가 발생했습니다.");
     }
   };
 
@@ -89,10 +82,10 @@ export default function MyPage() {
     try {
       await updateLink(id, updates);
       setEditingId(null);
-      showToast(`'${updates.title}' 링크가 수정되었습니다.`);
+      toast.success("링크가 수정되었습니다.", { description: updates.title });
     } catch (error) {
       console.error("링크 수정 오류:", error);
-      showToast("링크 수정 중 문제가 발생했습니다.");
+      toast.error("링크 수정 중 문제가 발생했습니다.");
       throw error;
     }
   };
@@ -103,10 +96,10 @@ export default function MyPage() {
     const { id, title } = deletingLink;
     try {
       await deleteLink(id);
-      showToast(`'${title}' 링크가 삭제되었습니다.`);
+      toast.success("링크가 삭제되었습니다.", { description: title });
     } catch (error) {
       console.error("링크 삭제 오류:", error);
-      showToast("링크 삭제 중 문제가 발생했습니다.");
+      toast.error("링크 삭제 중 문제가 발생했습니다.");
       throw error;
     }
   };
@@ -132,7 +125,7 @@ export default function MyPage() {
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>메인으로 이동</span>
           </Link>
-          <AuthButton onToast={showToast} />
+          <AuthButton />
         </div>
 
         {/* 1~5. 프로필 섹션 (Center, Top 프로필 사진 & 정보) */}
@@ -210,7 +203,7 @@ export default function MyPage() {
           <div className="h-40 w-full bg-white rounded-2xl border border-[#E5E8EF] animate-pulse" />
         ) : authStatus === "signedOut" ? (
           // 로그아웃 상태: 링크 기능 대신 로그인 안내
-          <LoginRequiredCard onToast={showToast} />
+          <LoginRequiredCard />
         ) : (
         <>
         {/* 로그인 사용자 정보 (Firestore users/{uid}) */}
@@ -293,16 +286,6 @@ export default function MyPage() {
         onClose={() => setDeletingLink(null)}
         onConfirm={handleConfirmDelete}
       />
-
-      {/* 정갈한 토스트 알림 */}
-      {toastMessage && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
-          <div className="bg-[#141A24] text-white px-4 py-2.5 rounded-[12px] shadow-lg text-xs font-semibold flex items-center gap-2">
-            <Check className="w-3.5 h-3.5 text-[#04CA81]" />
-            <span>{toastMessage}</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

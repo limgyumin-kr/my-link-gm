@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Share2, Check, Sliders } from "@/components/icons";
 import { UserRound } from "lucide-react";
 import { AuthButton } from "@/components/AuthButton";
@@ -10,13 +11,11 @@ import { useAuthStore } from "@/lib/authStore";
 interface TopAppBarProps {
   isManageMode: boolean;
   onToggleManageMode: () => void;
-  onToast: (msg: string) => void;
 }
 
 export function TopAppBar({
   isManageMode,
   onToggleManageMode,
-  onToast,
 }: TopAppBarProps) {
   const [copied, setCopied] = useState(false);
   const isSignedIn = useAuthStore((s) => s.status === "signedIn");
@@ -26,11 +25,13 @@ export function TopAppBar({
       if (typeof window !== "undefined") {
         await navigator.clipboard.writeText(window.location.href);
         setCopied(true);
-        onToast("페이지 링크가 복사되었습니다!");
+        toast.success("페이지 링크가 복사되었습니다.", { description: window.location.href });
         setTimeout(() => setCopied(false), 2000);
       }
     } catch {
-      onToast("클립보드 복사에 실패했습니다.");
+      toast.error("클립보드 복사에 실패했습니다.", {
+        description: "브라우저의 클립보드 권한을 확인해주세요.",
+      });
     }
   };
 
@@ -102,7 +103,7 @@ export function TopAppBar({
         </button>
 
         {/* Google 로그인 / 로그아웃 */}
-        <AuthButton onToast={onToast} />
+        <AuthButton />
       </div>
     </header>
   );

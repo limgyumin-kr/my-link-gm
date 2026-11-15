@@ -7,7 +7,7 @@ import { AuthButton } from "@/components/AuthButton";
 /**
  * 로그아웃 상태에서 링크 영역 대신 보여주는 안내 카드
  */
-export function LoginRequiredCard({ onToast }: { onToast?: (msg: string) => void }) {
+export function LoginRequiredCard() {
   return (
     <section className="rounded-2xl bg-white border border-[#E5E8EF] p-6 shadow-xs flex flex-col items-center text-center gap-4">
       <div className="w-12 h-12 rounded-full bg-[#EBF5FF] text-[#0078FF] flex items-center justify-center">
@@ -37,7 +37,7 @@ export function LoginRequiredCard({ onToast }: { onToast?: (msg: string) => void
         </li>
       </ul>
 
-      <AuthButton size="lg" onToast={onToast} />
+      <AuthButton size="lg" />
     </section>
   );
 }

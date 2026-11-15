@@ -2,16 +2,16 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import { toast } from "sonner";
 import { UserProfile, SocialLink } from "@/types/link";
 import { SocialIcon, Check } from "@/components/icons";
 
 interface ProfileSectionProps {
   profile: UserProfile;
   socials: SocialLink[];
-  onToast: (msg: string) => void;
 }
 
-export function ProfileSection({ profile, socials, onToast }: ProfileSectionProps) {
+export function ProfileSection({ profile, socials }: ProfileSectionProps) {
   const [copiedEmail, setCopiedEmail] = useState(false);
 
   const handleCopyEmail = async (emailUrl: string) => {
@@ -19,10 +19,10 @@ export function ProfileSection({ profile, socials, onToast }: ProfileSectionProp
     try {
       await navigator.clipboard.writeText(rawEmail);
       setCopiedEmail(true);
-      onToast("이메일 주소가 클립보드에 복사되었습니다.");
+      toast.success("이메일 주소가 클립보드에 복사되었습니다.", { description: rawEmail });
       setTimeout(() => setCopiedEmail(false), 2000);
     } catch {
-      onToast(rawEmail);
+      toast.error("클립보드 복사에 실패했습니다.", { description: rawEmail });
     }
   };
 

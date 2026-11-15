@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useAuthStore, getAuthErrorMessage } from "@/lib/authStore";
 import { ProfileMenu } from "@/components/ProfileMenu";
 
@@ -18,7 +19,6 @@ export function GoogleLogo({ className = "w-4 h-4" }: { className?: string }) {
 }
 
 interface AuthButtonProps {
-  onToast?: (msg: string) => void;
   /** 로그인 버튼을 크게 표시 (안내 카드용) */
   size?: "sm" | "lg";
 }
@@ -27,7 +27,7 @@ interface AuthButtonProps {
  * 로그아웃 상태: "Google로 로그인" 버튼
  * 로그인 상태: 프로필 드롭다운 메뉴 ([사진 + 이름님 ▾] → 계정 정보, 페이지 이동, 로그아웃)
  */
-export function AuthButton({ onToast, size = "sm" }: AuthButtonProps) {
+export function AuthButton({ size = "sm" }: AuthButtonProps) {
   const status = useAuthStore((s) => s.status);
   const user = useAuthStore((s) => s.user);
   const signInWithGoogle = useAuthStore((s) => s.signInWithGoogle);
@@ -41,7 +41,7 @@ export function AuthButton({ onToast, size = "sm" }: AuthButtonProps) {
       // 사용자가 팝업을 닫는 등 예상 가능한 실패가 대부분이므로 warn으로 기록 (Next 개발 오버레이 방지)
       console.warn("Google 로그인 실패:", (error as { code?: string })?.code ?? error);
       const msg = getAuthErrorMessage(error);
-      if (msg) onToast?.(msg);
+      if (msg) toast.error("로그인하지 못했습니다.", { description: msg });
     } finally {
       setIsPending(false);
     }
@@ -72,5 +72,5 @@ export function AuthButton({ onToast, size = "sm" }: AuthButtonProps) {
   }
 
   // 로그인 상태: 프로필 드롭다운 메뉴 (계정 정보, 페이지 이동, 링크 관리, 로그아웃)
-  return <ProfileMenu user={user} onToast={onToast} />;
+  return <ProfileMenu user={user} />;
 }

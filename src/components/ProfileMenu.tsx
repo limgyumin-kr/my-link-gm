@@ -65,7 +65,7 @@ function ItemBadge({ children }: { children: React.ReactNode }) {
  * - 트리거: 프로필 사진 + 이름 + ▾ (모바일은 사진만)
  * - 계정 정보(이름/이메일/링크 통계) → 페이지 이동 → 링크 관리/공유 → 로그아웃
  */
-export function ProfileMenu({ user, onToast }: { user: User; onToast?: (msg: string) => void }) {
+export function ProfileMenu({ user }: { user: User }) {
   const router = useRouter();
   const pathname = usePathname();
   const signOut = useAuthStore((s) => s.signOut);
@@ -83,7 +83,7 @@ export function ProfileMenu({ user, onToast }: { user: User; onToast?: (msg: str
   const handleToggleManage = () => {
     if (isHome) {
       setManageMode(!isManageMode);
-      onToast?.(isManageMode ? "보기 모드로 전환했습니다." : "링크 관리 모드를 켰습니다.");
+      toast.success(isManageMode ? "보기 모드로 전환했습니다." : "링크 관리 모드를 켰습니다.");
     } else {
       // 관리 모드는 메인 페이지 기능이므로 이동 후 켬
       setManageMode(true);
@@ -110,10 +110,10 @@ export function ProfileMenu({ user, onToast }: { user: User; onToast?: (msg: str
     setIsSigningOut(true);
     try {
       await signOut();
-      onToast?.("로그아웃되었습니다.");
+      toast.success("로그아웃되었습니다.");
     } catch (error) {
       console.error("로그아웃 실패:", error);
-      onToast?.("로그아웃 중 문제가 발생했습니다.");
+      toast.error("로그아웃 중 문제가 발생했습니다.");
       setIsSigningOut(false);
     }
   };

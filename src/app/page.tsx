@@ -12,7 +12,7 @@ import { CategoryFilter } from "@/components/CategoryFilter";
 import { LinkCard } from "@/components/LinkCard";
 import { LinkModal } from "@/components/LinkModal";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
-import { Snackbar } from "@/components/Snackbar";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { LinkItem, LinkCategory } from "@/types/link";
 import { Plus, Sparkles } from "@/components/icons";
@@ -41,11 +41,6 @@ export default function MyLinkPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<LinkItem | null>(null);
   const [deletingLink, setDeletingLink] = useState<LinkItem | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-  };
 
   // 카테고리별 개수 계산
   const categoryCounts = useMemo(() => {
@@ -93,16 +88,16 @@ export default function MyLinkPage() {
     try {
       if (editingLink) {
         await updateLink(editingLink.id, data);
-        showToast("링크가 성공적으로 수정되었습니다.");
+        toast.success("링크가 수정되었습니다.", { description: data.title });
         setEditingLink(null);
       } else {
         await addLink(data);
-        showToast("새 링크가 Firestore에 저장되었습니다.");
+        toast.success("새 링크가 저장되었습니다.", { description: data.title });
         setIsAddModalOpen(false);
       }
     } catch (error) {
       console.error("링크 저장 오류:", error);
-      showToast("링크 저장 중 오류가 발생했습니다.");
+      toast.error("링크 저장 중 오류가 발생했습니다.");
     }
   };
 
@@ -110,11 +105,11 @@ export default function MyLinkPage() {
     if (!deletingLink) return;
     try {
       await deleteLink(deletingLink.id);
-      showToast("링크가 삭제되었습니다.");
+      toast.success("링크가 삭제되었습니다.", { description: deletingLink.title });
       setDeletingLink(null);
     } catch (error) {
       console.error("링크 삭제 오류:", error);
-      showToast("링크 삭제 중 오류가 발생했습니다.");
+      toast.error("링크 삭제 중 오류가 발생했습니다.");
       throw error;
     }
   };
@@ -140,7 +135,6 @@ export default function MyLinkPage() {
       <TopAppBar
         isManageMode={isManageMode}
         onToggleManageMode={toggleManageMode}
-        onToast={showToast}
       />
 
       {/* 메인 1단 카드 컨테이너 (모바일 375px ~ 최대 576px 최적화) */}
@@ -165,14 +159,14 @@ export default function MyLinkPage() {
         )}
 
         {/* 프로필 섹션 (16px 라운드 화이트 카드) */}
-        <ProfileSection profile={profile} socials={socials} onToast={showToast} />
+        <ProfileSection profile={profile} socials={socials} />
 
         {authStatus === "loading" ? (
           // onAuthStateChanged 첫 응답 전: 로그인 여부 확인 중
           <div className="h-40 w-full bg-white rounded-2xl border border-[#E5E8EF] animate-pulse" />
         ) : !isSignedIn ? (
           // 로그아웃 상태: 링크 기능 대신 로그인 안내
-          <LoginRequiredCard onToast={showToast} />
+          <LoginRequiredCard />
         ) : (
         <>
         {/* 로그인 사용자 정보 (Firestore users/{uid}) */}
@@ -332,7 +326,6 @@ export default function MyLinkPage() {
       />
 
       {/* 정갈한 스낵바 피드백 */}
-      <Snackbar message={toastMessage} onClose={() => setToastMessage(null)} />
     </div>
   );
 }
