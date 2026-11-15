@@ -44,7 +44,8 @@ export function AuthButton({ onToast, size = "sm" }: AuthButtonProps) {
     try {
       await signInWithGoogle();
     } catch (error) {
-      console.error("Google 로그인 실패:", error);
+      // 사용자가 팝업을 닫는 등 예상 가능한 실패가 대부분이므로 warn으로 기록 (Next 개발 오버레이 방지)
+      console.warn("Google 로그인 실패:", (error as { code?: string })?.code ?? error);
       const msg = getAuthErrorMessage(error);
       if (msg) onToast?.(msg);
     } finally {

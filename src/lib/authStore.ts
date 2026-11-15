@@ -3,6 +3,8 @@ import {
   GoogleAuthProvider,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut as firebaseSignOut,
   User,
 } from "firebase/auth";
@@ -65,7 +67,16 @@ export const useAuthStore = create<AuthState>()((set) => ({
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: "select_account" });
     // 성공 시 상태 반영은 onAuthStateChanged가 담당
-    await signInWithPopup(auth, provider);
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      // 팝업이 차단된 환경(인앱 브라우저, 팝업 차단 설정 등)에서는 페이지 이동 방식으로 재시도
+      if ((error as { code?: string })?.code === "auth/popup-blocked") {
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+      throw error;
+    }
   },
 
   signOut: async () => {
@@ -74,6 +85,11 @@ export const useAuthStore = create<AuthState>()((set) => ({
 
   startAuthListener: () => {
     let unsubscribeUserDoc: Unsubscribe | null = null;
+
+    // 리다이렉트 방식 로그인에서 돌아온 경우 결과 처리 (성공 시 onAuthStateChanged가 상태 반영)
+    getRedirectResult(auth).catch((error) => {
+      console.warn("Google 리다이렉트 로그인 실패:", (error as { code?: string })?.code ?? error);
+    });
 
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       unsubscribeUserDoc?.();
