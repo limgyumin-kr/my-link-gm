@@ -13,6 +13,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { User } from "firebase/auth";
+import { toast } from "sonner";
 import { useAuthStore, getDisplayName } from "@/lib/authStore";
 import { useLinkStore } from "@/lib/store";
 import {
@@ -91,11 +92,15 @@ export function ProfileMenu({ user, onToast }: { user: User; onToast?: (msg: str
   };
 
   const handleCopyLink = async () => {
+    const url = `${window.location.origin}/`;
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}/`);
-      onToast?.("내 페이지 링크가 복사되었습니다.");
+      await navigator.clipboard.writeText(url);
+      // sonner 토스트 (중앙 상단, layout의 Toaster 설정)
+      toast.success("내 페이지 링크가 복사되었습니다.", { description: url });
     } catch {
-      onToast?.("클립보드 복사에 실패했습니다.");
+      toast.error("클립보드 복사에 실패했습니다.", {
+        description: "브라우저의 클립보드 권한을 확인해주세요.",
+      });
     }
   };
 
