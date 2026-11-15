@@ -1,10 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useLinkStore } from "@/lib/store";
 import { useIsClient } from "@/lib/useIsClient";
+import { useAuthStore } from "@/lib/authStore";
+import { AuthButton } from "@/components/AuthButton";
+import { UserInfoCard } from "@/components/UserInfoCard";
+import { LoginRequiredCard } from "@/components/LoginRequiredCard";
 import { LinkCategory, LinkItem } from "@/types/link";
 import { LinkModal } from "@/components/LinkModal";
 import { EditableLinkRow } from "@/components/EditableLinkRow";
@@ -24,8 +28,9 @@ export default function MyPage() {
     updateLink,
     deleteLink,
     linksStatus,
-    subscribeToFirestore,
   } = useLinkStore();
+  // 로그인 상태 (onAuthStateChanged는 layout의 AuthSync에서 감지)
+  const authStatus = useAuthStore((s) => s.status);
   const mounted = useIsClient();
 
   // 다이얼로그 모달 상태
@@ -39,14 +44,6 @@ export default function MyPage() {
   const githubUrl = "https://github.com/limgyumin-kr";
   const instagramId = "@lnstargramn";
   const instagramUrl = "https://instagram.com/lnstargramn";
-
-  // Firestore 실시간 동기화 (첫 스냅샷이 초기 목록 역할)
-  useEffect(() => {
-    const unsubscribe = subscribeToFirestore();
-    return () => {
-      unsubscribe?.();
-    };
-  }, [subscribeToFirestore]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -135,7 +132,7 @@ export default function MyPage() {
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>메인으로 이동</span>
           </Link>
-          <span className="text-xs text-[#99A1B1] font-medium">마이페이지</span>
+          <AuthButton onToast={showToast} />
         </div>
 
         {/* 1~5. 프로필 섹션 (Center, Top 프로필 사진 & 정보) */}
@@ -209,6 +206,16 @@ export default function MyPage() {
           </div>
         </section>
 
+        {authStatus === "loading" ? (
+          <div className="h-40 w-full bg-white rounded-2xl border border-[#E5E8EF] animate-pulse" />
+        ) : authStatus === "signedOut" ? (
+          // 로그아웃 상태: 링크 기능 대신 로그인 안내
+          <LoginRequiredCard onToast={showToast} />
+        ) : (
+        <>
+        {/* 로그인 사용자 정보 (Firestore users/{uid}) */}
+        <UserInfoCard linkCount={linksStatus === "ready" ? links.length : undefined} />
+
         {/* 6. 새 링크 추가 버튼 (하나로만 깔끔하게 통일) */}
         <button
           type="button"
@@ -262,6 +269,8 @@ export default function MyPage() {
             </div>
           )}
         </section>
+        </>
+        )}
 
         {/* 푸터 */}
         <footer className="text-center py-4 text-[11px] text-[#CBD1DC]">

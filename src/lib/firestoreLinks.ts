@@ -16,16 +16,14 @@ import { LinkItem } from "@/types/link";
 import { normalizeCategory, normalizeLinkCategory } from "./categories";
 
 /**
- * Firestore 링크 컬렉션 경로: users/anonymous/links
+ * Firestore 링크 컬렉션 경로: users/{uid}/links (로그인한 사용자별로 개인화)
  */
-export const FIRESTORE_USERS_ANONYMOUS_LINKS = "users/anonymous/links" as const;
-
-export const getLinksCollectionRef = () => {
-  return collection(db, "users", "anonymous", "links");
+export const getLinksCollectionRef = (uid: string) => {
+  return collection(db, "users", uid, "links");
 };
 
-export const getLinkDocRef = (id: string) => {
-  return doc(db, "users", "anonymous", "links", id);
+export const getLinkDocRef = (uid: string, id: string) => {
+  return doc(db, "users", uid, "links", id);
 };
 
 /**
@@ -50,14 +48,14 @@ function docToLink(id: string, data: DocumentData): LinkItem {
 }
 
 /**
- * Firestore users/anonymous/links 경로에 새 링크 저장
+ * Firestore users/{uid}/links 경로에 새 링크 저장
  */
 export async function addLinkToFirestore(
+  uid: string,
   newLinkData: Omit<LinkItem, "id" | "createdAt" | "updatedAt" | "clickCount" | "order">,
   order: number = 0
 ): Promise<LinkItem> {
-  const colRef = getLinksCollectionRef();
-  const newDocRef = doc(colRef);
+  const newDocRef = doc(getLinksCollectionRef(uid));
   const now = new Date().toISOString();
 
   // Firestore는 undefined 필드가 포함되면 에러를 던지므로 명시적 안전값 지정
@@ -81,34 +79,22 @@ export async function addLinkToFirestore(
 }
 
 /**
- * Firestore users/anonymous/links 경로의 링크 목록 조회
+ * Firestore users/{uid}/links 경로의 링크 목록 조회 (1회성)
  */
-export async function getLinksFromFirestore(): Promise<LinkItem[]> {
-  try {
-    const colRef = getLinksCollectionRef();
-    const q = query(colRef, orderBy("order", "asc"));
-    const snapshot = await getDocs(q);
-    const links: LinkItem[] = [];
-
-    snapshot.forEach((docSnap) => {
-      links.push(docToLink(docSnap.id, docSnap.data()));
-    });
-
-    return links;
-  } catch (error) {
-    console.error("getLinksFromFirestore error:", error);
-    return [];
-  }
+export async function getLinksFromFirestore(uid: string): Promise<LinkItem[]> {
+  const q = query(getLinksCollectionRef(uid), orderBy("order", "asc"));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((docSnap) => docToLink(docSnap.id, docSnap.data()));
 }
 
 /**
- * Firestore users/anonymous/links 경로의 링크 수정
+ * Firestore users/{uid}/links 경로의 링크 수정
  */
 export async function updateLinkInFirestore(
+  uid: string,
   id: string,
   updates: Partial<LinkItem>
 ): Promise<void> {
-  const docRef = getLinkDocRef(id);
   // id/createdAt은 수정 대상이 아니므로 제외
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { id: _id, createdAt: _createdAt, ...rest } = updates;
@@ -125,47 +111,31 @@ export async function updateLinkInFirestore(
   });
 
   // 실패 시 호출자가 롤백/에러 안내를 할 수 있도록 에러를 그대로 던짐
-  await updateDoc(docRef, cleanUpdates);
+  await updateDoc(getLinkDocRef(uid, id), cleanUpdates);
 }
 
 /**
- * Firestore users/anonymous/links 경로의 링크 삭제
+ * Firestore users/{uid}/links 경로의 링크 삭제
  * 실패 시 에러를 그대로 던짐 (호출자에서 롤백 처리)
  */
-export async function deleteLinkFromFirestore(id: string): Promise<void> {
-  await deleteDoc(getLinkDocRef(id));
+export async function deleteLinkFromFirestore(uid: string, id: string): Promise<void> {
+  await deleteDoc(getLinkDocRef(uid, id));
 }
 
 /**
- * Firestore 문서가 존재하지 않아 발생한 에러인지 확인 (로컬 전용 데모 링크 판별용)
- */
-export function isNotFoundError(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    (error as { code?: string }).code === "not-found"
-  );
-}
-
-/**
- * Firestore users/anonymous/links 경로의 실시간 변경 구독
+ * Firestore users/{uid}/links 경로의 실시간 변경 구독
  */
 export function subscribeToFirestoreLinks(
+  uid: string,
   onUpdate: (links: LinkItem[]) => void,
   onError?: (error: Error) => void
 ): Unsubscribe {
-  const colRef = getLinksCollectionRef();
-  const q = query(colRef, orderBy("order", "asc"));
+  const q = query(getLinksCollectionRef(uid), orderBy("order", "asc"));
 
   return onSnapshot(
     q,
     (snapshot) => {
-      const links: LinkItem[] = [];
-      snapshot.forEach((docSnap) => {
-        links.push(docToLink(docSnap.id, docSnap.data()));
-      });
-      onUpdate(links);
+      onUpdate(snapshot.docs.map((docSnap) => docToLink(docSnap.id, docSnap.data())));
     },
     (err) => {
       console.error("subscribeToFirestoreLinks error:", err);

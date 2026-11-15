@@ -3,6 +3,9 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { Share2, Check, Sliders } from "@/components/icons";
+import { UserRound } from "lucide-react";
+import { AuthButton } from "@/components/AuthButton";
+import { useAuthStore } from "@/lib/authStore";
 
 interface TopAppBarProps {
   isManageMode: boolean;
@@ -16,6 +19,7 @@ export function TopAppBar({
   onToast,
 }: TopAppBarProps) {
   const [copied, setCopied] = useState(false);
+  const isSignedIn = useAuthStore((s) => s.status === "signedIn");
 
   const handleShare = async () => {
     try {
@@ -46,17 +50,20 @@ export function TopAppBar({
       </div>
 
       {/* 우측 액션 버튼들 */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
         {/* 마이페이지 링크 */}
         <Link
           href="/mypage"
           className="h-8 px-2.5 rounded-[8px] bg-white border border-[#5B5FC7]/30 text-[#5B5FC7] hover:bg-[#5B5FC7]/10 active:scale-[0.96] transition flex items-center gap-1.5 text-[12px] font-semibold socar-press"
-          title="마이페이지 링크 추가 폼"
+          title="마이페이지"
+          aria-label="마이페이지"
         >
-          <span>마이페이지</span>
+          <UserRound className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">마이페이지</span>
         </Link>
 
-        {/* 관리 모드 토글 버튼 */}
+        {/* 관리 모드 토글 버튼 (로그인 상태에서만) */}
+        {isSignedIn && (
         <button
           onClick={onToggleManageMode}
           className={`h-8 px-2.5 rounded-[8px] text-[12px] font-semibold transition flex items-center gap-1.5 socar-press active:scale-[0.96] border ${
@@ -65,29 +72,35 @@ export function TopAppBar({
               : "bg-[#F2F3F8] text-[#354153] border-[#E5E8EF] hover:bg-[#E5E8EF]"
           }`}
           title={isManageMode ? "방문자 화면으로 보기" : "링크 편집 및 관리"}
+          aria-label={isManageMode ? "관리 중" : "편집"}
         >
           <Sliders className="w-3.5 h-3.5" />
-          <span>{isManageMode ? "관리 중" : "편집"}</span>
+          <span className="hidden sm:inline">{isManageMode ? "관리 중" : "편집"}</span>
         </button>
+        )}
 
         {/* 공유하기 버튼 */}
         <button
           onClick={handleShare}
           className="h-8 px-2.5 rounded-[8px] bg-white border border-[#E5E8EF] text-[#354153] hover:bg-[#F2F3F8] active:scale-[0.96] transition flex items-center gap-1.5 text-[12px] font-semibold socar-press"
           title="페이지 공유하기"
+          aria-label="페이지 공유하기"
         >
           {copied ? (
             <>
               <Check className="w-3.5 h-3.5 text-[#04CA81]" />
-              <span className="text-[#04CA81]">복사됨</span>
+              <span className="text-[#04CA81] hidden sm:inline">복사됨</span>
             </>
           ) : (
             <>
               <Share2 className="w-3.5 h-3.5 text-[#697383]" />
-              <span>공유하기</span>
+              <span className="hidden sm:inline">공유하기</span>
             </>
           )}
         </button>
+
+        {/* Google 로그인 / 로그아웃 */}
+        <AuthButton onToast={onToast} />
       </div>
     </header>
   );

@@ -1,25 +1,39 @@
 import { NextResponse, type NextRequest } from "next/server";
 import mockData from "@/data/mock-links.json";
-import { getLinksFromFirestore, addLinkToFirestore } from "@/lib/firestoreLinks";
+import { getLinksFromFirestore } from "@/lib/firestoreLinks";
 import { LinkItem } from "@/types/link";
 
 /**
- * GET /api/links
+ * GET /api/links?uid={uid}
  * 쿼리 파라미터 지원:
+ * - uid: (필수) 조회할 사용자 uid → Firestore users/{uid}/links
  * - category: PORTFOLIO | WEBSITE | ETC | ALL
  * - activeOnly: boolean (true일 경우 활성화된 링크만 반환)
  *
- * Firestore users/anonymous/links 경로의 링크만 반환합니다. (데모 목데이터 링크는 병합하지 않음)
+ * Firestore users/{uid}/links 경로의 링크만 반환합니다. (데모 목데이터 링크는 병합하지 않음)
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
     const activeOnly = searchParams.get("activeOnly") === "true";
+    const uid = searchParams.get("uid");
+
+    if (!uid) {
+      return NextResponse.json(
+        {
+          status: "error",
+          statusCode: 400,
+          message: "uid 쿼리 파라미터가 필요합니다. (예: /api/links?uid=...)",
+          timestamp: new Date().toISOString(),
+        },
+        { status: 400 }
+      );
+    }
 
     let firestoreLinks: LinkItem[] = [];
     try {
-      firestoreLinks = await getLinksFromFirestore();
+      firestoreLinks = await getLinksFromFirestore(uid);
     } catch (e) {
       console.warn("API GET /api/links firestore fetch skipped/failed:", e);
     }
@@ -76,57 +90,18 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/links
- * Firestore users/anonymous/links 경로에 신규 링크 추가
+ * 링크는 users/{uid}/links 에 저장되며, 로그인한 본인만 추가할 수 있어야 한다.
+ * 서버 API에는 로그인 정보가 없어 본인 확인이 불가능하므로 비활성화하고,
+ * 클라이언트(Firebase Auth 로그인 상태)에서 직접 Firestore에 저장한다.
  */
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { title, url, category, description, icon, isActive, isFeatured, order } = body;
-
-    if (!title || !url || !category) {
-      return NextResponse.json(
-        {
-          status: "error",
-          statusCode: 400,
-          message: "필수 항목(title, url, category)이 누락되었습니다.",
-        },
-        { status: 400 }
-      );
-    }
-
-    const createdLink = await addLinkToFirestore(
-      {
-        title,
-        url,
-        category,
-        description: description || "",
-        icon: icon || "globe",
-        isActive: isActive ?? true,
-        isFeatured: Boolean(isFeatured),
-      },
-      typeof order === "number" ? order : 0
-    );
-
-    return NextResponse.json(
-      {
-        status: "success",
-        statusCode: 201,
-        message: "Firestore users/anonymous/links에 링크가 성공적으로 추가되었습니다.",
-        data: createdLink,
-        timestamp: new Date().toISOString(),
-      },
-      { status: 201 }
-    );
-  } catch (error) {
-    return NextResponse.json(
-      {
-        status: "error",
-        statusCode: 500,
-        message: "링크 생성 중 오류가 발생했습니다.",
-        error: error instanceof Error ? error.message : "Unknown error",
-        timestamp: new Date().toISOString(),
-      },
-      { status: 500 }
-    );
-  }
+export async function POST() {
+  return NextResponse.json(
+    {
+      status: "error",
+      statusCode: 405,
+      message: "링크 추가는 Google 로그인 후 화면에서만 가능합니다.",
+      timestamp: new Date().toISOString(),
+    },
+    { status: 405, headers: { Allow: "GET" } }
+  );
 }

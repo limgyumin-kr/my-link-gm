@@ -77,7 +77,7 @@ export function ProfileSection({ profile, socials, onToast }: ProfileSectionProp
       )}
 
       {/* 소셜 아이콘 바 (원형 SVG 버튼) */}
-      <div className="flex items-center gap-2 pt-1">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
         {socials.map((social) => {
           const isMail = social.platform === "mail" || social.url.startsWith("mailto:");
 
@@ -86,7 +86,7 @@ export function ProfileSection({ profile, socials, onToast }: ProfileSectionProp
               <button
                 key={social.platform}
                 onClick={() => handleCopyEmail(social.url)}
-                className="flex-1 h-10 px-3 rounded-[10px] bg-[#F2F3F8] hover:bg-[#E5E8EF] text-[#354153] flex items-center justify-center gap-1.5 text-xs font-semibold transition socar-press active:scale-[0.96]"
+                className="min-w-0 h-10 px-3 rounded-[10px] bg-[#F2F3F8] hover:bg-[#E5E8EF] text-[#354153] flex items-center justify-center gap-1.5 text-xs font-semibold transition socar-press active:scale-[0.96]"
                 title={social.label}
               >
                 {copiedEmail ? (
@@ -110,7 +110,7 @@ export function ProfileSection({ profile, socials, onToast }: ProfileSectionProp
               href={social.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 h-10 px-3 rounded-[10px] bg-[#F2F3F8] hover:bg-[#E5E8EF] text-[#354153] flex items-center justify-center gap-1.5 text-xs font-semibold transition socar-press active:scale-[0.96]"
+              className="min-w-0 h-10 px-3 rounded-[10px] bg-[#F2F3F8] hover:bg-[#E5E8EF] text-[#354153] flex items-center justify-center gap-1.5 text-xs font-semibold transition socar-press active:scale-[0.96]"
               title={social.label}
             >
               <SocialIcon platform={social.platform} className="w-3.5 h-3.5 text-[#354153]" />

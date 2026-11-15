@@ -1,7 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { useLinkStore } from "@/lib/store";
+import { useAuthStore } from "@/lib/authStore";
+import { UserInfoCard } from "@/components/UserInfoCard";
+import { LoginRequiredCard } from "@/components/LoginRequiredCard";
 import { useIsClient } from "@/lib/useIsClient";
 import { TopAppBar } from "@/components/TopAppBar";
 import { ProfileSection } from "@/components/ProfileSection";
@@ -29,22 +32,16 @@ export default function MyLinkPage() {
     toggleLinkActive,
     incrementClickCount,
     linksStatus,
-    subscribeToFirestore,
   } = useLinkStore();
+  // 로그인 상태 (onAuthStateChanged는 layout의 AuthSync에서 감지)
+  const authStatus = useAuthStore((s) => s.status);
+  const isSignedIn = authStatus === "signedIn";
 
   const mounted = useIsClient();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<LinkItem | null>(null);
   const [deletingLink, setDeletingLink] = useState<LinkItem | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  // Firestore 실시간 동기화 (첫 스냅샷이 초기 목록 역할)
-  useEffect(() => {
-    const unsubscribe = subscribeToFirestore();
-    return () => {
-      unsubscribe?.();
-    };
-  }, [subscribeToFirestore]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -149,7 +146,7 @@ export default function MyLinkPage() {
       {/* 메인 1단 카드 컨테이너 (모바일 375px ~ 최대 576px 최적화) */}
       <main className="max-w-xl mx-auto px-4 pt-4 flex flex-col gap-4">
         {/* 관리 모드 안내 배너 */}
-        {isManageMode && (
+        {isSignedIn && isManageMode && (
           <div className="bg-[#EBF5FF] border border-[#0078FF]/30 rounded-[12px] p-3 flex items-center justify-between text-xs text-[#0078FF] animate-in fade-in duration-200">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#0078FF] animate-ping" />
@@ -169,6 +166,17 @@ export default function MyLinkPage() {
 
         {/* 프로필 섹션 (16px 라운드 화이트 카드) */}
         <ProfileSection profile={profile} socials={socials} onToast={showToast} />
+
+        {authStatus === "loading" ? (
+          // onAuthStateChanged 첫 응답 전: 로그인 여부 확인 중
+          <div className="h-40 w-full bg-white rounded-2xl border border-[#E5E8EF] animate-pulse" />
+        ) : !isSignedIn ? (
+          // 로그아웃 상태: 링크 기능 대신 로그인 안내
+          <LoginRequiredCard onToast={showToast} />
+        ) : (
+        <>
+        {/* 로그인 사용자 정보 (Firestore users/{uid}) */}
+        <UserInfoCard linkCount={linksStatus === "ready" ? links.length : undefined} />
 
         {/* 링크 목록 헤더 & 카테고리 필터 */}
         <section className="flex flex-col gap-2.5">
@@ -269,17 +277,20 @@ export default function MyLinkPage() {
             <span>새 링크 지금 추가하기</span>
           </Button>
         </section>
+        </>
+        )}
 
         {/* 푸터 (SOCAR Frame 2.0 규칙 준수: 디자인시스템 명칭은 푸터 attribution에만 한정) */}
         <footer className="text-center py-6 text-xs text-[#99A1B1] flex flex-col gap-1">
           <p>© 2026 MyLink. Powered by SOCAR Frame 2.0</p>
           <p className="text-[11px] text-[#CBD1DC]">
-            All links & profiles are locally preserved in your browser.
+            Links are securely stored in your Google account space.
           </p>
         </footer>
       </main>
 
-      {/* 하단 고정 액션 바 (모바일 한 손 조작 환경 대응: 바텀 고정 액션 플레이트) */}
+      {/* 하단 고정 액션 바 (모바일 한 손 조작 환경 대응: 바텀 고정 액션 플레이트) - 로그인 시에만 */}
+      {isSignedIn && (
       <div className="fixed bottom-0 left-0 right-0 z-20 bg-white/95 backdrop-blur-md border-t border-[#E5E8EF] py-2.5 px-4 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
         <div className="max-w-xl mx-auto flex items-center gap-2">
           <Button
@@ -299,6 +310,7 @@ export default function MyLinkPage() {
           </Button>
         </div>
       </div>
+      )}
 
       {/* 링크 추가 / 수정 모달 (shadcn/ui Dialog) */}
       <LinkModal

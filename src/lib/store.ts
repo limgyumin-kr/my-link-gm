@@ -15,7 +15,7 @@ export type LinksStatus = "loading" | "ready" | "error";
 interface LinkStoreState {
   profile: UserProfile;
   socials: SocialLink[];
-  /** Firestore(users/anonymous/links)가 유일한 원본. 로컬에 저장하지 않는다. */
+  /** Firestore(users/{uid}/links)가 유일한 원본. 로컬에 저장하지 않는다. */
   links: LinkItem[];
   linksStatus: LinksStatus;
   selectedCategory: string; // "ALL" | LinkCategory
@@ -35,10 +35,20 @@ interface LinkStoreState {
   deleteLink: (id: string) => Promise<void>;
   toggleLinkActive: (id: string) => Promise<void>;
   incrementClickCount: (id: string) => Promise<void>;
-  subscribeToFirestore: () => () => void;
+  /** 현재 링크 목록의 소유자 uid (로그아웃 상태면 null) */
+  ownerUid: string | null;
+  /** users/{uid}/links 실시간 구독 시작 (로그인 시 AuthSync에서 호출) */
+  subscribeToFirestore: (uid: string) => () => void;
+  /** 로그아웃 시 링크 목록 비우기 */
+  clearLinks: () => void;
 }
 
 const defaultData = mockData.data;
+
+function requireUid(uid: string | null): string {
+  if (!uid) throw new Error("로그인이 필요합니다.");
+  return uid;
+}
 
 export const useLinkStore = create<LinkStoreState>()(
   persist(
@@ -49,6 +59,7 @@ export const useLinkStore = create<LinkStoreState>()(
       // 삭제했던 데모 링크가 되살아나므로, 링크는 항상 Firestore에서만 받아온다.
       links: [],
       linksStatus: "loading",
+      ownerUid: null,
       selectedCategory: "ALL",
       isManageMode: false,
       _hasHydrated: false,
@@ -65,7 +76,7 @@ export const useLinkStore = create<LinkStoreState>()(
         const order =
           currentLinks.length > 0 ? Math.min(...currentLinks.map((l) => l.order)) - 1 : 1;
 
-        const createdLink = await addLinkToFirestore(newLinkData, order);
+        const createdLink = await addLinkToFirestore(requireUid(get().ownerUid), newLinkData, order);
         set((state) => ({
           links: [createdLink, ...state.links.filter((l) => l.id !== createdLink.id)],
         }));
@@ -85,7 +96,7 @@ export const useLinkStore = create<LinkStoreState>()(
         }));
 
         try {
-          await updateLinkInFirestore(id, updates);
+          await updateLinkInFirestore(requireUid(get().ownerUid), id, updates);
         } catch (error) {
           set((state) => ({
             links: state.links.map((link) => (link.id === id ? previous : link)),
@@ -106,7 +117,7 @@ export const useLinkStore = create<LinkStoreState>()(
         }));
 
         try {
-          await deleteLinkFromFirestore(id);
+          await deleteLinkFromFirestore(requireUid(get().ownerUid), id);
         } catch (error) {
           set((state) => {
             if (state.links.some((link) => link.id === id)) return state;
@@ -131,7 +142,7 @@ export const useLinkStore = create<LinkStoreState>()(
         }));
 
         try {
-          await updateLinkInFirestore(id, { isActive: newActive });
+          await updateLinkInFirestore(requireUid(get().ownerUid), id, { isActive: newActive });
         } catch (error) {
           // 실패 시 원래 상태로 복구
           set((state) => ({
@@ -151,18 +162,27 @@ export const useLinkStore = create<LinkStoreState>()(
           ),
         }));
         try {
-          await updateLinkInFirestore(id, { clickCount: newCount });
+          await updateLinkInFirestore(requireUid(get().ownerUid), id, { clickCount: newCount });
         } catch (error) {
           console.warn("incrementClickCount Firestore 동기화 실패:", error);
         }
       },
 
       // Firestore 실시간 구독: 스냅샷이 곧 링크 목록 (로컬 병합 없음)
-      subscribeToFirestore: () => {
+      subscribeToFirestore: (uid) => {
+        // 사용자가 바뀌면 이전 사용자의 링크가 잠깐이라도 보이지 않도록 먼저 비움
+        set({ ownerUid: uid, links: [], linksStatus: "loading", isManageMode: false });
         try {
           return subscribeToFirestoreLinks(
-            (firestoreLinks) => set({ links: firestoreLinks, linksStatus: "ready" }),
-            () => set({ linksStatus: "error" })
+            uid,
+            (firestoreLinks) => {
+              // 구독 해제 직전에 도착한 다른 사용자의 스냅샷은 무시
+              if (get().ownerUid !== uid) return;
+              set({ links: firestoreLinks, linksStatus: "ready" });
+            },
+            () => {
+              if (get().ownerUid === uid) set({ linksStatus: "error" });
+            }
           );
         } catch (error) {
           console.error("subscribeToFirestore error:", error);
@@ -170,6 +190,9 @@ export const useLinkStore = create<LinkStoreState>()(
           return () => {};
         }
       },
+
+      clearLinks: () =>
+        set({ ownerUid: null, links: [], linksStatus: "loading", isManageMode: false }),
     }),
     {
       name: "mylink_profile_data_v1", // PRD 6.3 LocalStorage 저장 키
