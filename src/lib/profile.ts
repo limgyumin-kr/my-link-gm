@@ -38,7 +38,7 @@ const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
 export const RESERVED_USERNAMES = [
   "mypage", "api", "admin", "login", "logout", "signin", "signup", "settings",
   "profile", "user", "users", "links", "mylink", "about", "help", "support",
-  "static", "public", "assets", "null", "undefined",
+  "static", "public", "assets", "null", "undefined", "stats",
 ] as const;
 
 export function isReservedUsername(username: string): boolean {

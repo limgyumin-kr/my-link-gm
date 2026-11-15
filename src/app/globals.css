@@ -27,6 +27,13 @@
     --ring: #0078FF;
     --radius: 0.75rem;
 
+    /* shadcn/ui 차트 색상 (앱 포인트 컬러 #0078FF 기반 블루 계열) */
+    --chart-1: #0078FF;
+    --chart-2: #5AA9FF;
+    --chart-3: #99CEFF;
+    --chart-4: #354153;
+    --chart-5: #B4BBCB;
+
     /* SOCAR Frame 2.0 Color Tokens */
     --socar-primary: #0078FF;
     --socar-primary-strong: #0069FF;
@@ -99,6 +106,11 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

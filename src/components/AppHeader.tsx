@@ -8,13 +8,14 @@ import { AuthButton } from "@/components/AuthButton";
 
 const NAV_ITEMS = [
   { href: "/", label: "링크" },
+  { href: "/stats", label: "통계" },
   { href: "/mypage", label: "프로필" },
 ] as const;
 
 /**
  * 모든 페이지 공통 헤더
  * - 왼쪽: 로고 (홈으로)
- * - 가운데: 로그인 시 [링크 | 프로필] 탭
+ * - 가운데: 로그인 시 [링크 | 통계 | 프로필] 탭
  * - 오른쪽: 로그아웃 상태면 "Google로 로그인", 로그인 상태면 프로필 메뉴
  */
 export function AppHeader() {
@@ -34,7 +35,7 @@ export function AppHeader() {
         </Link>
 
         {isSignedIn && (
-          <nav aria-label="주요 메뉴" className="flex items-center gap-1 ml-1 sm:ml-3">
+          <nav aria-label="주요 메뉴" className="flex items-center gap-0.5 sm:gap-1 ml-0.5 sm:ml-3">
             {NAV_ITEMS.map((item) => {
               const active = pathname === item.href;
               return (
@@ -42,7 +43,7 @@ export function AppHeader() {
                   key={item.href}
                   href={item.href}
                   aria-current={active ? "page" : undefined}
-                  className={`h-8 px-3 rounded-full text-[13px] font-semibold flex items-center transition ${
+                  className={`h-8 px-2.5 sm:px-3 rounded-full text-[13px] font-semibold flex items-center transition ${
                     active
                       ? "bg-[#141A24] text-white"
                       : "text-[#697383] hover:text-[#141A24] hover:bg-[#F2F3F8]"

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   ChevronDown,
   LayoutList,
+  BarChart3,
   UserRound,
   ExternalLink,
   Link2,
@@ -81,6 +82,7 @@ export function ProfileMenu({ user }: { user: User }) {
   const publicCount = links.filter((l) => l.isActive).length;
   const isHome = pathname === "/";
   const isMyPage = pathname === "/mypage";
+  const isStats = pathname === "/stats";
 
   // 방문자가 보는 공개 페이지(/{username})를 새 탭으로 열기
   const handleOpenPublicPage = () => {
@@ -161,6 +163,11 @@ export function ProfileMenu({ user }: { user: User }) {
             <LayoutList className="w-4 h-4 text-[#99A1B1]" />
             <span>링크 관리</span>
             {isHome && <ItemBadge>현재</ItemBadge>}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => !isStats && router.push("/stats")}>
+            <BarChart3 className="w-4 h-4 text-[#99A1B1]" />
+            <span>통계</span>
+            {isStats && <ItemBadge>현재</ItemBadge>}
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => !isMyPage && router.push("/mypage")}>
             <UserRound className="w-4 h-4 text-[#99A1B1]" />

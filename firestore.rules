@@ -63,7 +63,8 @@ service cloud.firestore {
         && username.matches('^[a-z0-9_]{3,20}$')
         && !(username in ['mypage', 'api', 'admin', 'login', 'logout', 'signin', 'signup',
                           'settings', 'profile', 'user', 'users', 'links', 'mylink', 'about',
-                          'help', 'support', 'static', 'public', 'assets', 'null', 'undefined']);
+                          'help', 'support', 'static', 'public', 'assets', 'null', 'undefined',
+                          'stats']);
       allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
       allow update: if false;
     }
