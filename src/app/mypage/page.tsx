@@ -23,7 +23,7 @@ export default function MyPage() {
     addLink,
     updateLink,
     deleteLink,
-    fetchLinksFromFirestore,
+    linksStatus,
     subscribeToFirestore,
   } = useLinkStore();
   const mounted = useIsClient();
@@ -40,13 +40,13 @@ export default function MyPage() {
   const instagramId = "@lnstargramn";
   const instagramUrl = "https://instagram.com/lnstargramn";
 
+  // Firestore 실시간 동기화 (첫 스냅샷이 초기 목록 역할)
   useEffect(() => {
-    fetchLinksFromFirestore();
     const unsubscribe = subscribeToFirestore();
     return () => {
       unsubscribe?.();
     };
-  }, [fetchLinksFromFirestore, subscribeToFirestore]);
+  }, [subscribeToFirestore]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -223,10 +223,23 @@ export default function MyPage() {
         <section className="flex flex-col gap-2.5">
           <div className="flex items-center justify-between px-1 text-xs text-[#697383]">
             <span className="font-semibold text-[#141A24]">내 링크</span>
-            <span>{links.length}개</span>
+            <span>{linksStatus === "ready" ? `${links.length}개` : ""}</span>
           </div>
 
-          {links.length === 0 ? (
+          {linksStatus === "loading" ? (
+            <div className="flex flex-col gap-2">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="h-[52px] rounded-[14px] border border-[#E5E8EF] bg-white animate-pulse"
+                />
+              ))}
+            </div>
+          ) : linksStatus === "error" ? (
+            <div className="rounded-2xl border border-[#FFD1DA] bg-[#FFF0F3] p-6 text-center text-xs text-[#FF3A5B] font-semibold">
+              링크 목록을 불러오지 못했습니다. 네트워크 상태를 확인한 뒤 새로고침해주세요.
+            </div>
+          ) : links.length === 0 ? (
             <div className="bg-white rounded-2xl border border-[#E5E8EF] p-8 text-center text-xs text-[#99A1B1]">
               등록된 링크가 없습니다. &apos;새 링크 추가&apos; 버튼을 눌러보세요.
             </div>

@@ -12,7 +12,7 @@ import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { Snackbar } from "@/components/Snackbar";
 import { Button } from "@/components/ui/button";
 import { LinkItem, LinkCategory } from "@/types/link";
-import { Plus, RotateCcw, Sparkles } from "@/components/icons";
+import { Plus, Sparkles } from "@/components/icons";
 
 export default function MyLinkPage() {
   const {
@@ -28,8 +28,7 @@ export default function MyLinkPage() {
     deleteLink,
     toggleLinkActive,
     incrementClickCount,
-    resetToMockData,
-    fetchLinksFromFirestore,
+    linksStatus,
     subscribeToFirestore,
   } = useLinkStore();
 
@@ -39,14 +38,13 @@ export default function MyLinkPage() {
   const [deletingLink, setDeletingLink] = useState<LinkItem | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // SSR Hydration 불일치 방지 및 Firestore 실시간 동기화
+  // Firestore 실시간 동기화 (첫 스냅샷이 초기 목록 역할)
   useEffect(() => {
-    fetchLinksFromFirestore();
     const unsubscribe = subscribeToFirestore();
     return () => {
       unsubscribe?.();
     };
-  }, [fetchLinksFromFirestore, subscribeToFirestore]);
+  }, [subscribeToFirestore]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -121,13 +119,6 @@ export default function MyLinkPage() {
       console.error("링크 삭제 오류:", error);
       showToast("링크 삭제 중 오류가 발생했습니다.");
       throw error;
-    }
-  };
-
-  const handleResetData = () => {
-    if (window.confirm("초기 데모 데이터셋으로 복원하시겠습니까?")) {
-      resetToMockData();
-      showToast("기본 데모 데이터로 복원되었습니다.");
     }
   };
 
@@ -213,7 +204,19 @@ export default function MyLinkPage() {
 
         {/* 링크 목록 카드 렌더링 */}
         <section className="flex flex-col gap-3">
-          {displayedLinks.length === 0 ? (
+          {linksStatus === "loading" ? (
+            // Firestore 첫 응답 전: 빈 목록 안내가 깜빡이지 않도록 스켈레톤 표시
+            [0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="h-[92px] rounded-[14px] border border-[#E5E8EF] bg-white animate-pulse"
+              />
+            ))
+          ) : linksStatus === "error" ? (
+            <div className="rounded-2xl border border-[#FFD1DA] bg-[#FFF0F3] p-6 text-center text-xs text-[#FF3A5B] font-semibold">
+              링크 목록을 불러오지 못했습니다. 네트워크 상태를 확인한 뒤 새로고침해주세요.
+            </div>
+          ) : displayedLinks.length === 0 ? (
             <div className="rounded-2xl border border-[#E5E8EF] bg-white p-8 text-center flex flex-col items-center justify-center gap-2">
               <p className="text-sm font-semibold text-[#141A24]">
                 선택한 조건에 맞는 링크가 없습니다.
@@ -245,18 +248,6 @@ export default function MyLinkPage() {
             ))
           )}
         </section>
-
-        {/* 하단 유틸리티 섹션 (데모 초기화) */}
-        <div className="flex items-center justify-center gap-3 pt-2">
-          <button
-            onClick={handleResetData}
-            className="flex items-center gap-1.5 text-xs text-[#99A1B1] hover:text-[#697383] transition py-1 px-2.5 rounded-[6px] hover:bg-white border border-transparent hover:border-[#E5E8EF]"
-            title="초기 8개 더미 데이터셋으로 리셋"
-          >
-            <RotateCcw className="w-3 h-3" />
-            <span>데모 데이터로 초기화</span>
-          </button>
-        </div>
 
         {/* 하단 액션 카드 (CTA) */}
         <section className="rounded-2xl bg-white border border-[#E5E8EF] p-5 shadow-xs flex flex-col gap-3 text-center">

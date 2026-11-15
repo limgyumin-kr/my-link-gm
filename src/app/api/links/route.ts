@@ -9,7 +9,7 @@ import { LinkItem } from "@/types/link";
  * - category: PORTFOLIO | WEBSITE | ETC | ALL
  * - activeOnly: boolean (true일 경우 활성화된 링크만 반환)
  *
- * Firestore users/anonymous/links 경로의 링크를 우선 로드하고, 기본 목데이터와 병합하여 반환합니다.
+ * Firestore users/anonymous/links 경로의 링크만 반환합니다. (데모 목데이터 링크는 병합하지 않음)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -24,11 +24,7 @@ export async function GET(request: NextRequest) {
       console.warn("API GET /api/links firestore fetch skipped/failed:", e);
     }
 
-    const firestoreIds = new Set(firestoreLinks.map((l) => l.id));
-    let links = [
-      ...firestoreLinks,
-      ...mockData.data.links.filter((l) => !firestoreIds.has(l.id)),
-    ];
+    let links = [...firestoreLinks];
 
     // 활성 상태 필터링
     if (activeOnly) {
