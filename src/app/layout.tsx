@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "임규민 | 개발자 프로필",
-  description: "문제를 해결하고 끊임없이 성장하는 개발자 임규민의 프로필 페이지입니다.",
+  title: "MyLink - 나만의 링크 페이지",
+  description: "포트폴리오, 블로그, SNS 링크를 한 페이지에 모아 나만의 주소로 공유하세요.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

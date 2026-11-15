@@ -123,3 +123,12 @@ body {
 .socar-press:active {
   transform: scale(0.96);
 }
+
+/* 가로 스크롤 영역의 스크롤바 숨김 (카테고리 필터 칩 등) */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

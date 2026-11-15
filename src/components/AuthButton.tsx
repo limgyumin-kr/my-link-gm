@@ -48,12 +48,19 @@ export function AuthButton({ size = "sm" }: AuthButtonProps) {
   };
 
   if (status === "loading") {
-    return <div className="h-8 w-24 rounded-[8px] bg-[#F2F3F8] animate-pulse" aria-hidden="true" />;
+    return (
+      <div
+        className={`${size === "lg" ? "h-12 w-52 rounded-[14px]" : "h-8 w-24 rounded-full"} bg-[#F2F3F8] animate-pulse`}
+        aria-hidden="true"
+      />
+    );
   }
 
   if (status === "signedOut" || !user) {
     const sizeClass =
-      size === "lg" ? "h-11 px-5 text-sm rounded-[12px] gap-2" : "h-8 px-2.5 text-[12px] rounded-[8px] gap-1.5";
+      size === "lg"
+        ? "h-12 px-6 text-[15px] rounded-[14px] gap-2.5 shadow-sm"
+        : "h-8 px-3 text-[12px] rounded-full gap-1.5";
     return (
       <button
         type="button"

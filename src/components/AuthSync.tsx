@@ -17,6 +17,15 @@ export function AuthSync() {
 
   useEffect(() => startAuthListener(), [startAuthListener]);
 
+  // 이전 버전에서 데모 프로필을 저장하던 LocalStorage 키 정리 (현재는 사용하지 않음)
+  useEffect(() => {
+    try {
+      localStorage.removeItem("mylink_profile_data_v1");
+    } catch {
+      // 저장소 접근이 막힌 환경(시크릿 모드 등)은 무시
+    }
+  }, []);
+
   useEffect(() => {
     if (!uid) {
       clearLinks();

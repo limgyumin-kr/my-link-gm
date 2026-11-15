@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { toast } from "sonner";
 import { AlertCircle, Check, Loader2, RotateCcw, UserPen } from "lucide-react";
 import { useAuthStore, getDefaultUsername } from "@/lib/authStore";
+import { getPublicUrlLabel } from "@/lib/publicUrl";
 import {
   saveProfile,
   validateUsername,
@@ -34,7 +35,7 @@ export function ProfileEditCard() {
 
   if (profileStatus === "loading") {
     return (
-      <section className="rounded-2xl bg-white border border-[#E5E8EF] p-5 shadow-xs flex flex-col gap-3">
+      <section className="rounded-[20px] bg-white border border-[#E5E8EF] p-5 sm:p-6 flex flex-col gap-3">
         <div className="h-5 w-28 rounded bg-[#F2F3F8] animate-pulse" />
         {[0, 1, 2].map((i) => (
           <div key={i} className="h-10 w-full rounded-[10px] bg-[#F2F3F8] animate-pulse" />
@@ -124,20 +125,19 @@ function ProfileEditForm({
     }
   };
 
-  const shareUrl =
-    typeof window !== "undefined" ? `${window.location.host}/${values.username || "username"}` : "";
+  const shareUrl = getPublicUrlLabel(values.username || "username");
 
   return (
-    <section className="rounded-2xl bg-white border border-[#E5E8EF] p-5 shadow-xs">
+    <section className="rounded-[20px] bg-white border border-[#E5E8EF] p-5 sm:p-6">
       <form onSubmit={handleSave} className="flex flex-col gap-4" noValidate>
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="w-8 h-8 rounded-[10px] bg-[#EEEFFB] text-[#5B5FC7] flex items-center justify-center">
+            <span className="w-8 h-8 rounded-[10px] bg-[#EBF5FF] text-[#0078FF] flex items-center justify-center">
               <UserPen className="w-4 h-4" />
             </span>
             <div>
-              <h2 className="text-[15px] font-bold text-[#141A24]">프로필 수정</h2>
-              <p className="text-[11px] text-[#99A1B1]">공유 페이지에 표시되는 정보입니다.</p>
+              <h2 className="text-[15px] font-bold text-[#141A24]">공개 프로필</h2>
+              <p className="text-[11px] text-[#99A1B1]">내 공개 페이지에 표시되는 정보입니다.</p>
             </div>
           </div>
           {isDirty && isSaved && (
@@ -173,8 +173,8 @@ function ProfileEditForm({
           current={isSaved ? `@${initial.username}` : undefined}
         >
           <div
-            className={`flex items-center h-10 rounded-[10px] border bg-white transition focus-within:ring-2 focus-within:ring-[#5B5FC7]/40 ${
-              errors.username ? "border-[#FF3A5B]" : "border-[#E5E8EF] focus-within:border-[#5B5FC7]"
+            className={`flex items-center h-10 rounded-[10px] border bg-white transition focus-within:ring-2 focus-within:ring-[#0078FF]/40 ${
+              errors.username ? "border-[#FF3A5B]" : "border-[#E5E8EF] focus-within:border-[#0078FF]"
             }`}
           >
             <span className="pl-3 pr-0.5 text-sm text-[#99A1B1] select-none">@</span>
@@ -192,7 +192,7 @@ function ProfileEditForm({
             />
           </div>
           <p className="text-[11px] text-[#99A1B1] truncate">
-            공유 URL: <span className="font-mono text-[#5B5FC7]">{shareUrl}</span>
+            공유 URL: <span className="font-mono text-[#0078FF]">{shareUrl}</span>
           </p>
         </Field>
 
@@ -211,8 +211,8 @@ function ProfileEditForm({
             maxLength={DISPLAY_NAME_MAX}
             disabled={isSaving}
             aria-invalid={Boolean(errors.displayName)}
-            className={`h-10 w-full rounded-[10px] border px-3 text-sm text-[#141A24] outline-none transition focus:ring-2 focus:ring-[#5B5FC7]/40 disabled:opacity-60 ${
-              errors.displayName ? "border-[#FF3A5B]" : "border-[#E5E8EF] focus:border-[#5B5FC7]"
+            className={`h-10 w-full rounded-[10px] border px-3 text-sm text-[#141A24] outline-none transition focus:ring-2 focus:ring-[#0078FF]/40 disabled:opacity-60 ${
+              errors.displayName ? "border-[#FF3A5B]" : "border-[#E5E8EF] focus:border-[#0078FF]"
             }`}
           />
         </Field>
@@ -233,8 +233,8 @@ function ProfileEditForm({
             placeholder="나를 한 줄로 소개해보세요."
             disabled={isSaving}
             aria-invalid={Boolean(errors.bio)}
-            className={`w-full rounded-[10px] border px-3 py-2 text-sm text-[#141A24] leading-relaxed outline-none resize-none transition focus:ring-2 focus:ring-[#5B5FC7]/40 placeholder:text-[#99A1B1] disabled:opacity-60 ${
-              errors.bio ? "border-[#FF3A5B]" : "border-[#E5E8EF] focus:border-[#5B5FC7]"
+            className={`w-full rounded-[10px] border px-3 py-2 text-sm text-[#141A24] leading-relaxed outline-none resize-none transition focus:ring-2 focus:ring-[#0078FF]/40 placeholder:text-[#99A1B1] disabled:opacity-60 ${
+              errors.bio ? "border-[#FF3A5B]" : "border-[#E5E8EF] focus:border-[#0078FF]"
             }`}
           />
         </Field>
@@ -242,7 +242,7 @@ function ProfileEditForm({
         <button
           type="submit"
           disabled={isSaving || !isDirty}
-          className="h-11 rounded-[12px] bg-[#5B5FC7] hover:bg-[#4E52B5] text-white text-sm font-semibold flex items-center justify-center gap-1.5 transition shadow-xs socar-press active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          className="h-11 rounded-[12px] bg-[#0078FF] hover:bg-[#0066DB] text-white text-sm font-semibold flex items-center justify-center gap-1.5 transition shadow-xs socar-press active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           {isSaving ? (
             <>

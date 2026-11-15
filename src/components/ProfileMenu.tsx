@@ -5,9 +5,9 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ChevronDown,
-  Home,
+  LayoutList,
   UserRound,
-  Sliders,
+  ExternalLink,
   Link2,
   LogOut,
   Loader2,
@@ -16,6 +16,7 @@ import { User } from "firebase/auth";
 import { toast } from "sonner";
 import { useAuthStore, getDisplayName, getDefaultUsername } from "@/lib/authStore";
 import { useLinkStore } from "@/lib/store";
+import { getPublicUrl } from "@/lib/publicUrl";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -63,7 +64,7 @@ function ItemBadge({ children }: { children: React.ReactNode }) {
 /**
  * 로그인 상태의 프로필 드롭다운 메뉴
  * - 트리거: 프로필 사진 + 이름 + ▾ (모바일은 사진만)
- * - 계정 정보(이름/이메일/링크 통계) → 페이지 이동 → 링크 관리/공유 → 로그아웃
+ * - 계정 정보(이름/@username/이메일/링크 통계) → 페이지 이동 → 공개 페이지 보기/복사 → 로그아웃
  */
 export function ProfileMenu({ user }: { user: User }) {
   const router = useRouter();
@@ -72,8 +73,6 @@ export function ProfileMenu({ user }: { user: User }) {
   const profile = useAuthStore((s) => s.profile);
   const links = useLinkStore((s) => s.links);
   const linksStatus = useLinkStore((s) => s.linksStatus);
-  const isManageMode = useLinkStore((s) => s.isManageMode);
-  const setManageMode = useLinkStore((s) => s.setManageMode);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const name = getDisplayName(profile, user);
@@ -82,19 +81,13 @@ export function ProfileMenu({ user }: { user: User }) {
   const isHome = pathname === "/";
   const isMyPage = pathname === "/mypage";
 
-  const handleToggleManage = () => {
-    if (isHome) {
-      setManageMode(!isManageMode);
-      toast.success(isManageMode ? "보기 모드로 전환했습니다." : "링크 관리 모드를 켰습니다.");
-    } else {
-      // 관리 모드는 메인 페이지 기능이므로 이동 후 켬
-      setManageMode(true);
-      router.push("/");
-    }
+  // 방문자가 보는 공개 페이지(/{username})를 새 탭으로 열기
+  const handleOpenPublicPage = () => {
+    window.open(getPublicUrl(username), "_blank", "noopener,noreferrer");
   };
 
   const handleCopyLink = async () => {
-    const url = `${window.location.origin}/`;
+    const url = getPublicUrl(username);
     try {
       await navigator.clipboard.writeText(url);
       // sonner 토스트 (중앙 상단, layout의 Toaster 설정)
@@ -164,25 +157,24 @@ export function ProfileMenu({ user }: { user: User }) {
         {/* 페이지 이동 */}
         <DropdownMenuGroup>
           <DropdownMenuItem onSelect={() => !isHome && router.push("/")}>
-            <Home className="w-4 h-4 text-[#99A1B1]" />
-            <span>내 프로필 페이지</span>
+            <LayoutList className="w-4 h-4 text-[#99A1B1]" />
+            <span>링크 관리</span>
             {isHome && <ItemBadge>현재</ItemBadge>}
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => !isMyPage && router.push("/mypage")}>
             <UserRound className="w-4 h-4 text-[#99A1B1]" />
-            <span>마이페이지</span>
+            <span>프로필 설정</span>
             {isMyPage && <ItemBadge>현재</ItemBadge>}
           </DropdownMenuItem>
         </DropdownMenuGroup>
 
         <DropdownMenuSeparator />
 
-        {/* 링크 관리 & 공유 */}
+        {/* 공개 페이지 보기 & 공유 */}
         <DropdownMenuGroup>
-          <DropdownMenuItem onSelect={handleToggleManage}>
-            <Sliders className="w-4 h-4 text-[#99A1B1]" />
-            <span>{isHome && isManageMode ? "보기 모드로 전환" : "링크 관리 모드"}</span>
-            {isHome && isManageMode && <ItemBadge>켜짐</ItemBadge>}
+          <DropdownMenuItem onSelect={handleOpenPublicPage}>
+            <ExternalLink className="w-4 h-4 text-[#99A1B1]" />
+            <span>내 공개 페이지 보기</span>
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={handleCopyLink}>
             <Link2 className="w-4 h-4 text-[#99A1B1]" />
