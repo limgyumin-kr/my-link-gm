@@ -51,7 +51,8 @@ export function TopAppBar({
 
       {/* 우측 액션 버튼들 */}
       <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-        {/* 마이페이지 링크 */}
+        {/* 마이페이지 링크 (로그인 시에는 프로필 메뉴 안으로 이동) */}
+        {!isSignedIn && (
         <Link
           href="/mypage"
           className="h-8 px-2.5 rounded-[8px] bg-white border border-[#5B5FC7]/30 text-[#5B5FC7] hover:bg-[#5B5FC7]/10 active:scale-[0.96] transition flex items-center gap-1.5 text-[12px] font-semibold socar-press"
@@ -61,6 +62,7 @@ export function TopAppBar({
           <UserRound className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">마이페이지</span>
         </Link>
+        )}
 
         {/* 관리 모드 토글 버튼 (로그인 상태에서만) */}
         {isSignedIn && (

@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import Image from "next/image";
-import { LogOut, Loader2 } from "lucide-react";
-import { useAuthStore, getAuthErrorMessage, getDisplayName } from "@/lib/authStore";
+import { Loader2 } from "lucide-react";
+import { useAuthStore, getAuthErrorMessage } from "@/lib/authStore";
+import { ProfileMenu } from "@/components/ProfileMenu";
 
 /** Google 'G' 로고 (로그인 버튼용) */
 export function GoogleLogo({ className = "w-4 h-4" }: { className?: string }) {
@@ -25,13 +25,12 @@ interface AuthButtonProps {
 
 /**
  * 로그아웃 상태: "Google로 로그인" 버튼
- * 로그인 상태: "{이름}님" + "로그아웃" 버튼
+ * 로그인 상태: 프로필 드롭다운 메뉴 ([사진 + 이름님 ▾] → 계정 정보, 페이지 이동, 로그아웃)
  */
 export function AuthButton({ onToast, size = "sm" }: AuthButtonProps) {
   const status = useAuthStore((s) => s.status);
   const user = useAuthStore((s) => s.user);
   const signInWithGoogle = useAuthStore((s) => s.signInWithGoogle);
-  const signOut = useAuthStore((s) => s.signOut);
   const [isPending, setIsPending] = useState(false);
 
   const handleSignIn = async () => {
@@ -43,19 +42,6 @@ export function AuthButton({ onToast, size = "sm" }: AuthButtonProps) {
       console.warn("Google 로그인 실패:", (error as { code?: string })?.code ?? error);
       const msg = getAuthErrorMessage(error);
       if (msg) onToast?.(msg);
-    } finally {
-      setIsPending(false);
-    }
-  };
-
-  const handleSignOut = async () => {
-    setIsPending(true);
-    try {
-      await signOut();
-      onToast?.("로그아웃되었습니다.");
-    } catch (error) {
-      console.error("로그아웃 실패:", error);
-      onToast?.("로그아웃 중 문제가 발생했습니다.");
     } finally {
       setIsPending(false);
     }
@@ -85,39 +71,6 @@ export function AuthButton({ onToast, size = "sm" }: AuthButtonProps) {
     );
   }
 
-  const name = getDisplayName(user.email, user.displayName);
-
-  return (
-    <div className="flex items-center gap-1.5 min-w-0">
-      <div className="flex items-center gap-1.5 min-w-0" title={user.email ?? undefined}>
-        {user.photoURL ? (
-          <Image
-            src={user.photoURL}
-            alt=""
-            width={24}
-            height={24}
-            unoptimized
-            referrerPolicy="no-referrer"
-            className="w-6 h-6 rounded-full border border-[#E5E8EF] shrink-0 hidden sm:block"
-          />
-        ) : null}
-        {/* 이름이 길면 이름만 말줄임하고 '님'은 항상 표시 */}
-        <span className="flex items-baseline min-w-0 text-[12px] font-semibold text-[#141A24]">
-          <span className="truncate max-w-[110px] sm:max-w-[160px]">{name}</span>
-          <span className="shrink-0">님</span>
-        </span>
-      </div>
-      <button
-        type="button"
-        onClick={handleSignOut}
-        disabled={isPending}
-        aria-label="로그아웃"
-        title="로그아웃"
-        className="h-8 px-2.5 rounded-[8px] bg-white border border-[#E5E8EF] text-[#697383] hover:text-[#FF3A5B] hover:border-[#FFD1DA] hover:bg-[#FFF0F3] text-[12px] font-semibold flex items-center gap-1 transition socar-press active:scale-[0.96] disabled:opacity-60 cursor-pointer whitespace-nowrap"
-      >
-        <LogOut className="w-3.5 h-3.5" />
-        <span className="hidden sm:inline">로그아웃</span>
-      </button>
-    </div>
-  );
+  // 로그인 상태: 프로필 드롭다운 메뉴 (계정 정보, 페이지 이동, 링크 관리, 로그아웃)
+  return <ProfileMenu user={user} onToast={onToast} />;
 }
