@@ -1,22 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
-import mockData from "@/data/mock-links.json";
-import { getLinksFromFirestore } from "@/lib/firestoreLinks";
-import { LinkItem } from "@/types/link";
+import { getPublicLinksFromFirestore } from "@/lib/firestoreLinks";
 
 /**
  * GET /api/links?uid={uid}
  * 쿼리 파라미터 지원:
  * - uid: (필수) 조회할 사용자 uid → Firestore users/{uid}/links
  * - category: PORTFOLIO | WEBSITE | ETC | ALL
- * - activeOnly: boolean (true일 경우 활성화된 링크만 반환)
  *
- * Firestore users/{uid}/links 경로의 링크만 반환합니다. (데모 목데이터 링크는 병합하지 않음)
+ * 서버 API에는 로그인 정보가 없으므로 공개(isActive == true) 링크만 반환합니다.
+ * (보안 규칙상 비로그인 요청은 공개 링크 조건 없이 목록을 읽을 수 없음)
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
-    const activeOnly = searchParams.get("activeOnly") === "true";
     const uid = searchParams.get("uid");
 
     if (!uid) {
@@ -31,46 +28,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    let firestoreLinks: LinkItem[] = [];
-    try {
-      firestoreLinks = await getLinksFromFirestore(uid);
-    } catch (e) {
-      console.warn("API GET /api/links firestore fetch skipped/failed:", e);
-    }
-
-    let links = [...firestoreLinks];
-
-    // 활성 상태 필터링
-    if (activeOnly) {
-      links = links.filter((item) => item.isActive);
-    }
+    // 공개 링크만 조회 (대표 링크 → order 오름차순 정렬 포함)
+    let links = await getPublicLinksFromFirestore(uid);
 
     // 카테고리 필터링
     if (category && category !== "ALL") {
       links = links.filter((item) => item.category === category);
     }
 
-    // 정렬: 1순위 Featured, 2순위 order 오름차순
-    links.sort((a, b) => {
-      if (a.isFeatured && !b.isFeatured) return -1;
-      if (!a.isFeatured && b.isFeatured) return 1;
-      return a.order - b.order;
-    });
-
     return NextResponse.json({
       status: "success",
       statusCode: 200,
       message: "링크 목록을 성공적으로 조회했습니다.",
       data: {
-        ...mockData.data,
         links,
-        pagination: {
-          ...mockData.data.pagination,
-          total: links.length,
-          page: 1,
-          limit: 10,
-          totalPages: Math.max(1, Math.ceil(links.length / 10)),
-        },
+        total: links.length,
       },
       timestamp: new Date().toISOString(),
     });

@@ -96,15 +96,20 @@ export function validateBio(bio: string): string | null {
  * 이메일 앞부분을 username 규칙에 맞게 변환
  * 예: "Gil.Dong-Hong@gmail.com" → "gil_dong_hong"
  */
-export function usernameFromEmail(email?: string | null): string {
+export function usernameFromEmail(email?: string | null, seed?: string | null): string {
   const prefix = (email?.split("@")[0] ?? "")
     .toLowerCase()
     .replace(/[^a-z0-9_]/g, "_")
     .replace(/_+/g, "_")
     .replace(/^_|_$/g, "")
     .slice(0, USERNAME_MAX);
+  if (prefix.length >= USERNAME_MIN) return prefix;
   // 너무 짧으면 규칙(3자 이상)을 만족하도록 보충
-  return prefix.length >= USERNAME_MIN ? prefix : `${prefix || "user"}_${Math.random().toString(36).slice(2, 6)}`.slice(0, USERNAME_MAX);
+  // seed(uid)가 있으면 그 값으로 만들어 호출할 때마다 같은 결과가 나오게 한다 (화면·공유 URL이 바뀌지 않도록)
+  const suffix =
+    (seed ?? "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 4) ||
+    Math.random().toString(36).slice(2, 6);
+  return `${prefix || "user"}_${suffix}`.slice(0, USERNAME_MAX);
 }
 
 /** 중복 시 뒤에 붙일 후보: base, base_2 ~ base_9, base_xxxx(랜덤) */
@@ -124,24 +129,28 @@ function usernameCandidates(base: string): string[] {
  */
 export async function ensureProfile(user: User): Promise<void> {
   const ref = profileDocRef(user.uid);
-  const base = usernameFromEmail(user.email);
+  const base = usernameFromEmail(user.email, user.uid);
 
   await runTransaction(db, async (tx) => {
     const profileSnap = await tx.get(ref);
     if (profileSnap.exists()) return;
 
     let chosen: string | null = null;
+    let chosenExists = false;
     for (const candidate of usernameCandidates(base)) {
       const snap = await tx.get(usernameDocRef(candidate));
       if (!snap.exists() || snap.data()?.uid === user.uid) {
         chosen = candidate;
+        chosenExists = snap.exists();
         break;
       }
     }
     if (!chosen) throw new UsernameTakenError(base);
 
     const now = new Date().toISOString();
-    tx.set(usernameDocRef(chosen), { uid: user.uid, createdAt: now });
+    // 인덱스가 이미 내 uid로 있으면 그대로 사용 (보안 규칙상 usernames 문서 수정(update)은 금지라
+    // 다시 set 하면 트랜잭션 전체가 permission-denied로 실패한다)
+    if (!chosenExists) tx.set(usernameDocRef(chosen), { uid: user.uid, createdAt: now });
     tx.set(ref, {
       username: chosen,
       displayName: (user.displayName?.trim() || chosen).slice(0, DISPLAY_NAME_MAX),

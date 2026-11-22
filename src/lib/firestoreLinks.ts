@@ -8,6 +8,7 @@ import {
   increment,
   query,
   orderBy,
+  where,
   onSnapshot,
   Unsubscribe,
   DocumentData,
@@ -90,6 +91,22 @@ export async function getLinksFromFirestore(uid: string): Promise<LinkItem[]> {
   const q = query(getLinksCollectionRef(uid), orderBy("order", "asc"));
   const snapshot = await getDocs(q);
   return snapshot.docs.map((docSnap) => docToLink(docSnap.id, docSnap.data()));
+}
+
+/**
+ * 공개(isActive == true) 링크만 조회 - 로그인 없이(서버, 방문자) 읽을 때 사용
+ * - 보안 규칙상 비로그인 요청은 where("isActive", "==", true) 조건이 있어야 읽을 수 있다.
+ * - 정렬(대표 링크 → order 오름차순)은 메모리에서 처리해 별도 복합 색인 없이 동작한다.
+ */
+export async function getPublicLinksFromFirestore(uid: string): Promise<LinkItem[]> {
+  const q = query(getLinksCollectionRef(uid), where("isActive", "==", true));
+  const snapshot = await getDocs(q);
+  return snapshot.docs
+    .map((docSnap) => docToLink(docSnap.id, docSnap.data()))
+    .filter((l) => l.url)
+    .sort(
+      (a, b) => Number(Boolean(b.isFeatured)) - Number(Boolean(a.isFeatured)) || a.order - b.order
+    );
 }
 
 /**

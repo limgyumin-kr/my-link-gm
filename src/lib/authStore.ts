@@ -63,8 +63,8 @@ export function getDisplayName(
 }
 
 /** 프로필이 아직 없을 때 보여줄 기본 username (이메일 앞부분) */
-export function getDefaultUsername(user: Pick<User, "email"> | null | undefined): string {
-  return usernameFromEmail(user?.email);
+export function getDefaultUsername(user: Pick<User, "email" | "uid"> | null | undefined): string {
+  return usernameFromEmail(user?.email, user?.uid);
 }
 
 /**

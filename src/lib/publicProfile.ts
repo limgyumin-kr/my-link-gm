@@ -1,8 +1,8 @@
 import { cache } from "react";
-import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { db } from "./firebase";
 import { profileDocRef, isUsernameFormatValid, UserProfileDoc } from "./profile";
-import { normalizeLinkCategory } from "./categories";
+import { getPublicLinksFromFirestore } from "./firestoreLinks";
 import { LinkItem } from "@/types/link";
 
 export interface PublicPage {
@@ -22,7 +22,13 @@ export interface PublicPage {
  * React cache로 감싸 generateMetadata와 page에서 같은 요청을 한 번만 조회한다.
  */
 export const getPublicPage = cache(async (rawUsername: string): Promise<PublicPage | null> => {
-  const username = decodeURIComponent(rawUsername).trim().toLowerCase();
+  // 잘못된 퍼센트 인코딩(예: /%E0)은 decodeURIComponent가 URIError를 던지므로 404로 처리
+  let username: string;
+  try {
+    username = decodeURIComponent(rawUsername).trim().toLowerCase();
+  } catch {
+    return null;
+  }
   if (!isUsernameFormatValid(username)) return null;
 
   // 1) username → uid
@@ -36,31 +42,8 @@ export const getPublicPage = cache(async (rawUsername: string): Promise<PublicPa
   const profile = profileSnap.data() as UserProfileDoc;
   if (profile.username !== username) return null;
 
-  // 3) 공개 링크만 조회 (보안 규칙상 비로그인 방문자는 isActive == true 조건이 있어야 읽을 수 있음)
-  //    정렬은 메모리에서 처리해 별도 복합 색인 없이 동작하도록 함
-  const linksSnap = await getDocs(
-    query(collection(db, "users", uid, "links"), where("isActive", "==", true))
-  );
-  const links = linksSnap.docs
-    .map((d) => {
-      const data = d.data();
-      return normalizeLinkCategory({
-        id: d.id,
-        title: data.title ?? "",
-        description: data.description ?? "",
-        url: data.url ?? "",
-        category: data.category,
-        icon: data.icon ?? "globe",
-        isActive: true,
-        isFeatured: Boolean(data.isFeatured),
-        order: typeof data.order === "number" ? data.order : 0,
-        clickCount: typeof data.clickCount === "number" ? data.clickCount : 0,
-        createdAt: data.createdAt ?? "",
-        updatedAt: data.updatedAt ?? "",
-      }) as LinkItem;
-    })
-    .filter((l) => l.url)
-    .sort((a, b) => Number(Boolean(b.isFeatured)) - Number(Boolean(a.isFeatured)) || a.order - b.order);
+  // 3) 공개 링크만 조회 (대표 링크 → order 오름차순)
+  const links = await getPublicLinksFromFirestore(uid);
 
   return {
     uid,

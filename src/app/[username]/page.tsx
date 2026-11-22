@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { ExternalLink } from "lucide-react";
 import { getPublicPage } from "@/lib/publicProfile";
 import { CategoryIcon } from "@/components/icons";
@@ -12,6 +13,7 @@ import { TrackedLink } from "@/components/TrackedLink";
  * - 사용자를 찾지 못하면 notFound() → 같은 폴더의 not-found.tsx (HTTP 404)
  */
 export async function generateMetadata({ params }: PageProps<"/[username]">): Promise<Metadata> {
+  await connection();
   const { username } = await params;
   const page = await getPublicPage(username);
   if (!page) return { title: "페이지를 찾을 수 없습니다 | MyLink" };
@@ -24,6 +26,10 @@ export async function generateMetadata({ params }: PageProps<"/[username]">): Pr
 }
 
 export default async function PublicProfilePage({ params }: PageProps<"/[username]">) {
+  // 요청마다 Firestore에서 새로 조회 (빌드/첫 요청 결과가 정적 캐시로 굳지 않도록)
+  // → 링크 추가·수정·공개 전환, username 변경이 공개 페이지에 바로 반영된다.
+  await connection();
+
   // 1. URL에서 username 추출
   const { username } = await params;
 
